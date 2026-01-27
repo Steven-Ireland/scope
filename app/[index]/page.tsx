@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname, useParams } from 'next/navigation';
-import { X } from 'lucide-react';
+import { X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -43,10 +43,13 @@ function SearchContent() {
   const indexFromPath = params.index as string;
 
   const [indices, setIndices] = useState<{ index: string }[]>([]);
+  const [fields, setFields] = useState<{ name: string, type: string }[]>([]);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+  const [sortField, setSortField] = useState<string>(searchParams.get('sort') || '@timestamp');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>((searchParams.get('order') as 'asc' | 'desc') || 'desc');
   
   const [date, setDate] = useState<DateRange | undefined>(() => {
     const fromStr = searchParams.get('from');
@@ -67,7 +70,7 @@ function SearchContent() {
     };
   });
 
-  const updateUrl = useCallback((index: string, query: string, range: DateRange | undefined) => {
+  const updateUrl = useCallback((index: string, query: string, range: DateRange | undefined, sField?: string, sOrder?: string) => {
     const newParams = new URLSearchParams();
     
     if (query) newParams.set('q', query);
@@ -81,6 +84,12 @@ function SearchContent() {
     if (range?.from && !isDefaultFrom) newParams.set('from', range.from.toISOString());
     if (range?.to && !isDefaultTo) newParams.set('to', range.to.toISOString());
 
+    const currentSortField = sField || sortField;
+    const currentSortOrder = sOrder || sortOrder;
+
+    if (currentSortField !== '@timestamp') newParams.set('sort', currentSortField);
+    if (currentSortOrder !== 'desc') newParams.set('order', currentSortOrder);
+
     const qs = newParams.toString();
     const newPath = `/${index}`;
     const url = qs ? `${newPath}?${qs}` : newPath;
@@ -89,7 +98,7 @@ function SearchContent() {
     if (url !== currentUrl) {
         router.replace(url);
     }
-  }, [pathname, router, searchParams]);
+  }, [pathname, router, searchParams, sortField, sortOrder]);
 
   useEffect(() => {
     fetch('/api/indices')
@@ -99,6 +108,35 @@ function SearchContent() {
       })
       .catch((err) => console.error('Error fetching indices:', err));
   }, []);
+
+  useEffect(() => {
+    const s = searchParams.get('sort') || '@timestamp';
+    const o = (searchParams.get('order') as 'asc' | 'desc') || 'desc';
+    if (s !== sortField) setSortField(s);
+    if (o !== sortOrder) setSortOrder(o);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (indexFromPath) {
+      fetch(`/api/fields?index=${indexFromPath}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setFields(data);
+          const exists = data.some((f: { name: string }) => f.name === sortField);
+          if (!exists && sortField !== '@timestamp') {
+            setSortField('@timestamp');
+            setSortOrder('desc');
+          }
+        })
+        .catch((err) => console.error('Error fetching fields:', err));
+    }
+  }, [indexFromPath]); // We only want to check this when index changes
+
+  const isSortable = (field: string) => {
+    const fieldDef = fields.find(f => f.name === field);
+    if (!fieldDef) return field === '@timestamp'; // Default assumption for @timestamp
+    return fieldDef.type !== 'text';
+  };
 
   const handleSearch = useCallback(async () => {
     if (!indexFromPath) return;
@@ -115,6 +153,8 @@ function SearchContent() {
           query: searchQuery,
           from: date?.from?.toISOString(),
           to: date?.to?.toISOString(),
+          sortField,
+          sortOrder,
         }),
       });
       const data = await res.json();
@@ -124,13 +164,25 @@ function SearchContent() {
     } finally {
       setLoading(false);
     }
-  }, [indexFromPath, searchQuery, date, updateUrl]);
+  }, [indexFromPath, searchQuery, date, updateUrl, sortField, sortOrder]);
 
   useEffect(() => {
       if(indexFromPath) {
           handleSearch();
       }
   }, [indexFromPath, date, handleSearch]);
+
+  const handleSort = (field: string) => {
+    if (!isSortable(field)) return;
+
+    let newOrder: 'asc' | 'desc' = 'desc';
+    if (sortField === field) {
+      newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+    }
+    setSortField(field);
+    setSortOrder(newOrder);
+    updateUrl(indexFromPath, searchQuery, date, field, newOrder);
+  };
 
   const getColumns = () => {
     if (logs.length === 0) return ['@timestamp', 'level', 'message', 'service'];
@@ -188,11 +240,29 @@ function SearchContent() {
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow>
-                {columns.map(col => (
-                  <TableHead key={col} className={col === '@timestamp' ? 'w-48' : ''}>
-                    {col}
-                  </TableHead>
-                ))}
+                {columns.map(col => {
+                  const sortable = isSortable(col);
+                  return (
+                    <TableHead 
+                      key={col} 
+                      className={`${col === '@timestamp' ? 'w-48' : ''} ${sortable ? 'cursor-pointer hover:bg-muted/50 transition-colors' : 'cursor-default'}`}
+                      onClick={() => sortable && handleSort(col)}
+                    >
+                      <div className="flex items-center gap-1 group">
+                        {col}
+                        {sortable && (
+                          <span className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
+                            {sortField === col ? (
+                              sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                            ) : (
+                              <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             </TableHeader>
             <TableBody>

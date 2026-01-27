@@ -5,7 +5,7 @@ import { QueryDslQueryContainer } from '@elastic/elasticsearch/lib/api/types';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { index, query, from, to, offset = 0, size = 50 } = body;
+    const { index, query, from, to, offset = 0, size = 50, sortField, sortOrder } = body;
 
     if (!index) {
       return NextResponse.json({ error: 'Index is required' }, { status: 400 });
@@ -35,6 +35,13 @@ export async function POST(req: Request) {
       });
     }
 
+    const sort: Record<string, { order: 'asc' | 'desc' }>[] = [];
+    if (sortField) {
+      sort.push({ [sortField]: { order: sortOrder || 'desc' } });
+    } else {
+      sort.push({ '@timestamp': { order: 'desc' } });
+    }
+
     const searchResponse = await esClient.search({
       index,
       from: offset,
@@ -45,9 +52,7 @@ export async function POST(req: Request) {
             must: must.length > 0 ? must : [{ match_all: {} }],
           },
         },
-        sort: [
-          { '@timestamp': { order: 'desc' } }
-        ],
+        sort,
       },
     });
 

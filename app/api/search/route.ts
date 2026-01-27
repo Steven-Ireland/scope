@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import esClient from '@/lib/elasticsearch';
+import { QueryDslQueryContainer } from '@elastic/elasticsearch/lib/api/types';
 
 export async function POST(req: Request) {
   try {
@@ -10,7 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Index is required' }, { status: 400 });
     }
 
-    const must: any[] = [];
+    const must: QueryDslQueryContainer[] = [];
 
     // Time range filter
     if (from || to) {
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
       body: {
         query: {
           bool: {
-            must: must.length > 0 ? must : { match_all: {} },
+            must: must.length > 0 ? must : [{ match_all: {} }],
           },
         },
         sort: [
@@ -51,10 +52,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(searchResponse);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error performing search:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to perform search';
     return NextResponse.json(
-      { error: error.message || 'Failed to perform search' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

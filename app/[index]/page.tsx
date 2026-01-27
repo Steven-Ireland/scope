@@ -27,7 +27,7 @@ interface LogEntry {
   _id: string;
   _source: {
     '@timestamp': string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -102,7 +102,7 @@ function SearchContent() {
       .catch((err) => console.error('Error fetching indices:', err));
   }, []);
 
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     if (!indexFromPath) return;
 
     setLoading(true);
@@ -126,13 +126,13 @@ function SearchContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [indexFromPath, searchQuery, date, updateUrl]);
 
   useEffect(() => {
       if(indexFromPath) {
           handleSearch();
       }
-  }, [indexFromPath, date]);
+  }, [indexFromPath, date, handleSearch]);
 
   const getColumns = () => {
     if (logs.length === 0) return ['@timestamp', 'level', 'message', 'service'];

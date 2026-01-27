@@ -2,6 +2,19 @@
 
 import * as React from 'react';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+
+interface Field {
+  name: string;
+  type: string;
+}
+
+interface Suggestion {
+  label: string;
+  value: string;
+  type?: string;
+  kind: 'field' | 'value';
+}
 
 interface SearchInputProps {
   value: string;
@@ -12,9 +25,23 @@ interface SearchInputProps {
   disabled?: boolean;
 }
 
+const getTypeColor = (type?: string) => {
+  switch (type) {
+    case 'keyword': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    case 'integer':
+    case 'long':
+    case 'float':
+    case 'double': return 'bg-green-500/10 text-green-400 border-green-500/20';
+    case 'date': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+    case 'text': return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
+    case 'boolean': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+    default: return 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
+  }
+};
+
 export function SearchInput({ value, onChange, onSearch, index, placeholder, disabled }: SearchInputProps) {
-  const [fields, setFields] = React.useState<string[]>([]);
-  const [suggestions, setSuggestions] = React.useState<string[]>([]);
+  const [fields, setFields] = React.useState<Field[]>([]);
+  const [suggestions, setSuggestions] = React.useState<Suggestion[]>([]);
   const [isOpen, setIsOpen] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(-1);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -26,93 +53,149 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-            setFields(data);
+          setFields(data);
         }
       })
       .catch(err => console.error('Error fetching fields:', err));
   }, [index]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    onChange(newValue);
-
-    const cursorPosition = e.target.selectionStart || 0;
-    const textBeforeCursor = newValue.slice(0, cursorPosition);
-    // Split by spaces but keep delimiters to reconstruct properly if needed,
-    // though here we just need the last chunk.
-    const words = textBeforeCursor.split(/(\s+)/); 
-    const lastWord = words[words.length - 1];
-
-    // If we are typing a space, or empty, don't suggest
-    if (!lastWord || !lastWord.trim()) {
-        setIsOpen(false);
-        return;
+  const updateSuggestions = React.useCallback(async (text: string, cursorPosition: number) => {
+    const textBeforeCursor = text.slice(0, cursorPosition);
+    const textAfterCursor = text.slice(cursorPosition);
+    
+    // Only suggest if we are at the end of a "word" or right after a colon
+    // We check if the next character is whitespace or the end of the string.
+    const isAtWordEnd = textAfterCursor.length === 0 || /^\s/.test(textAfterCursor);
+    
+    if (!isAtWordEnd) {
+      setIsOpen(false);
+      return;
     }
 
-    // Filter fields that start with the last word
-    const matches = fields.filter(f => 
-        f.toLowerCase().startsWith(lastWord.toLowerCase()) && f.toLowerCase() !== lastWord.toLowerCase()
-    );
+    const words = textBeforeCursor.split(/(\s+)/);
+    const lastWord = words[words.length - 1];
 
-    if (matches.length > 0) {
-        setSuggestions(matches.slice(0, 10));
+    if (!lastWord || !lastWord.trim()) {
+      setIsOpen(false);
+      return;
+    }
+
+    if (lastWord.includes(':')) {
+      const [fieldName, ...valueParts] = lastWord.split(':');
+      const valuePrefix = valueParts.join(':');
+      const fieldType = fields.find(f => f.name === fieldName)?.type;
+      
+      try {
+        const res = await fetch(`/api/values?index=${index}&field=${fieldName}&query=${valuePrefix}&type=${fieldType || ''}`);
+        const values = await res.json();
+        
+        if (Array.isArray(values) && values.length > 0) {
+          setSuggestions(values.map(v => ({
+            label: String(v),
+            value: String(v),
+            kind: 'value'
+          })));
+          setIsOpen(true);
+          setActiveIndex(0);
+        } else {
+          setIsOpen(false);
+        }
+      } catch (err) {
+        console.error('Error fetching values:', err);
+        setIsOpen(false);
+      }
+    } else {
+      const matches = fields
+        .filter(f =>
+          f.name.toLowerCase().startsWith(lastWord.toLowerCase()) && f.name.toLowerCase() !== lastWord.toLowerCase()
+        )
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      if (matches.length > 0) {
+        setSuggestions(matches.slice(0, 10).map(f => ({
+          label: f.name,
+          value: f.name,
+          type: f.type,
+          kind: 'field'
+        })));
         setIsOpen(true);
         setActiveIndex(0);
+      } else {
+        setIsOpen(false);
+      }
+    }
+  }, [index, fields]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    const cursorPosition = e.target.selectionStart || 0;
+    onChange(newValue);
+    updateSuggestions(newValue, cursorPosition);
+  };
+
+  const selectSuggestion = (suggestion: Suggestion) => {
+    const cursorPosition = inputRef.current?.selectionStart || 0;
+    const textBeforeCursor = value.slice(0, cursorPosition);
+    const textAfterCursor = value.slice(cursorPosition);
+
+    const words = textBeforeCursor.split(/(\s+)/);
+    const lastWord = words[words.length - 1];
+
+    let newTextBefore = '';
+    if (suggestion.kind === 'field') {
+      newTextBefore = textBeforeCursor.slice(0, -lastWord.length) + suggestion.value + ':';
+    } else {
+      const [fieldName] = lastWord.split(':');
+      newTextBefore = textBeforeCursor.slice(0, -lastWord.length) + fieldName + ':' + suggestion.value + ' ';
+    }
+
+    const newValue = newTextBefore + textAfterCursor;
+    onChange(newValue);
+    
+    // Position cursor after the inserted text
+    const newPos = newTextBefore.length;
+
+    if (suggestion.kind === 'field') {
+        // If we just completed a field, show value suggestions immediately
+        updateSuggestions(newValue, newPos);
     } else {
         setIsOpen(false);
     }
-  };
-  
-  const selectSuggestion = (suggestion: string) => {
-      const cursorPosition = inputRef.current?.selectionStart || 0;
-      const textBeforeCursor = value.slice(0, cursorPosition);
-      const textAfterCursor = value.slice(cursorPosition);
-      
-      const words = textBeforeCursor.split(/(\s+)/);
-      const lastWord = words[words.length - 1];
-      
-      // Replace only the last word
-      const newTextBefore = textBeforeCursor.slice(0, -lastWord.length) + suggestion + ':';
-      
-      const newValue = newTextBefore + textAfterCursor;
-      onChange(newValue);
-      setIsOpen(false);
-      
-      // We need to wait a tick for the input value to update before setting focus/selection?
-      // Actually React state update might be enough. 
-      // We want to keep focus on input.
-      setTimeout(() => inputRef.current?.focus(), 0);
+
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(newPos, newPos);
+    }, 0);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (isOpen) {
-          if (e.key === 'ArrowDown') {
-              e.preventDefault();
-              setActiveIndex(i => (i + 1) % suggestions.length);
-          } else if (e.key === 'ArrowUp') {
-              e.preventDefault();
-              setActiveIndex(i => (i - 1 + suggestions.length) % suggestions.length);
-          } else if (e.key === 'Enter') {
-              e.preventDefault();
-              if (activeIndex >= 0 && activeIndex < suggestions.length) {
-                  selectSuggestion(suggestions[activeIndex]);
-              }
-          } else if (e.key === 'Escape') {
-              setIsOpen(false);
-          } else if (e.key === 'Tab') {
-              e.preventDefault();
-              if (activeIndex >= 0 && activeIndex < suggestions.length) {
-                  selectSuggestion(suggestions[activeIndex]);
-              }
-          }
-      } else {
-          if (e.key === 'Enter') {
-              onSearch();
-          }
+    if (isOpen) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIndex(i => (i + 1) % suggestions.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIndex(i => (i - 1 + suggestions.length) % suggestions.length);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (activeIndex >= 0 && activeIndex < suggestions.length) {
+          selectSuggestion(suggestions[activeIndex]);
+        }
+      } else if (e.key === 'Escape') {
+        setIsOpen(false);
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        if (activeIndex >= 0 && activeIndex < suggestions.length) {
+          selectSuggestion(suggestions[activeIndex]);
+        }
       }
+    } else {
+      if (e.key === 'Enter') {
+        onSearch();
+      }
+    }
   };
 
-  // Close when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -123,33 +206,59 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleCursorMove = (e: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>) => {
+    const target = e.target as HTMLInputElement;
+    updateSuggestions(target.value, target.selectionStart || 0);
+  };
+
   return (
     <div className="relative w-full" ref={containerRef}>
-        <Input 
-            ref={inputRef}
-            value={value}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={disabled}
-            autoComplete="off"
-        />
-        {isOpen && (
-            <div className="absolute z-50 w-full mt-1 bg-popover text-popover-foreground border rounded-md shadow-md overflow-hidden animate-in fade-in-0 zoom-in-95">
-                <ul className="py-1 max-h-60 overflow-auto">
-                    {suggestions.map((suggestion, index) => (
-                        <li 
-                            key={suggestion}
-                            className={`px-3 py-2 text-sm cursor-pointer ${index === activeIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent hover:text-accent-foreground'}`}
-                            onClick={() => selectSuggestion(suggestion)}
-                            onMouseEnter={() => setActiveIndex(index)}
-                        >
-                            {suggestion}
-                        </li>
-                    ))}
-                </ul>
-            </div>
-        )}
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        onClick={handleCursorMove}
+        onKeyUp={(e) => {
+          // Only trigger if it was an arrow key movement
+          if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) {
+            handleCursorMove(e);
+          }
+        }}
+        placeholder={placeholder}
+        disabled={disabled}
+        autoComplete="off"
+        className="font-mono"
+      />
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-popover text-popover-foreground border rounded-md shadow-md overflow-hidden animate-in fade-in-0 zoom-in-95">
+          <ul className="py-1 max-h-60 overflow-auto">
+            {suggestions.map((suggestion, index) => (
+              <li
+                key={`${suggestion.kind}-${suggestion.value}-${index}`}
+                className={cn(
+                  "px-3 py-2 text-sm cursor-pointer flex items-center justify-between",
+                  index === activeIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                )}
+                onClick={() => selectSuggestion(suggestion)}
+                onMouseEnter={() => setActiveIndex(index)}
+              >
+                <span className={suggestion.kind === 'value' ? 'font-medium' : 'font-mono'}>
+                  {suggestion.label}
+                </span>
+                {suggestion.kind === 'field' && (
+                  <span className={cn(
+                    "ml-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border",
+                    getTypeColor(suggestion.type)
+                  )}>
+                    {suggestion.type}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

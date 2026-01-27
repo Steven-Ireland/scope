@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import {
@@ -41,10 +41,13 @@ function SearchContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const indexFromQuery = searchParams.get('index') || '';
+  const qFromQuery = searchParams.get('q') || '';
+  const fromFromQuery = searchParams.get('from') || '';
+  const toFromQuery = searchParams.get('to') || '';
 
   const [indices, setIndices] = useState<{ index: string }[]>([]);
   const [fields, setFields] = useState<{ name: string, type: string }[]>([]);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [searchQuery, setSearchQuery] = useState(qFromQuery);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
@@ -52,13 +55,11 @@ function SearchContent() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>((searchParams.get('order') as 'asc' | 'desc') || 'desc');
   
   const [date, setDate] = useState<DateRange | undefined>(() => {
-    const fromStr = searchParams.get('from');
-    const toStr = searchParams.get('to');
-    if (fromStr && toStr) {
+    if (fromFromQuery && toFromQuery) {
       try {
         return {
-          from: parseISO(fromStr),
-          to: parseISO(toStr),
+          from: parseISO(fromFromQuery),
+          to: parseISO(toFromQuery),
         };
       } catch (e) {
         console.error('Error parsing dates from URL', e);
@@ -69,6 +70,9 @@ function SearchContent() {
       to: new Date(),
     };
   });
+
+  // Track the last set of params that we actually searched for
+  const lastSearchedRef = useRef<string>('');
 
   const updateUrl = useCallback((index: string, query: string, range: DateRange | undefined, sField?: string, sOrder?: string) => {
     const newParams = new URLSearchParams();
@@ -94,11 +98,40 @@ function SearchContent() {
     const qs = newParams.toString();
     const url = qs ? `${pathname}?${qs}` : pathname;
     
+    // Update the ref so the effect doesn't re-trigger
+    lastSearchedRef.current = qs;
+
     const currentUrl = pathname + (searchParams.toString() ? '?' + searchParams.toString() : '');
     if (url !== currentUrl) {
         router.replace(url);
     }
   }, [pathname, router, searchParams, sortField, sortOrder]);
+
+  const performSearch = useCallback(async (shouldUpdateUrl = false) => {
+    if (!indexFromQuery) return;
+
+    setLoading(true);
+    
+    if (shouldUpdateUrl) {
+      updateUrl(indexFromQuery, searchQuery, date);
+    }
+    
+    try {
+      const data = await apiClient.search({
+        index: indexFromQuery,
+        query: searchQuery,
+        from: date?.from?.toISOString(),
+        to: date?.to?.toISOString(),
+        sortField,
+        sortOrder,
+      });
+      setLogs(data.hits?.hits || []);
+    } catch (error) {
+      console.error('Search failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [indexFromQuery, searchQuery, date, updateUrl, sortField, sortOrder]);
 
   useEffect(() => {
     apiClient.getIndices()
@@ -136,34 +169,25 @@ function SearchContent() {
     return fieldDef.type !== 'text';
   };
 
-  const handleSearch = useCallback(async () => {
-    if (!indexFromQuery) return;
-
-    setLoading(true);
-    updateUrl(indexFromQuery, searchQuery, date);
-    
-    try {
-      const data = await apiClient.search({
-        index: indexFromQuery,
-        query: searchQuery,
-        from: date?.from?.toISOString(),
-        to: date?.to?.toISOString(),
-        sortField,
-        sortOrder,
-      });
-      setLogs(data.hits?.hits || []);
-    } catch (error) {
-      console.error('Search failed:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [indexFromQuery, searchQuery, date, updateUrl, sortField, sortOrder]);
-
+  // Sync state if URL changes externally (e.g. browser back button)
   useEffect(() => {
-      if(indexFromQuery) {
-          handleSearch();
-      }
-  }, [indexFromQuery, date, handleSearch]);
+    const currentQs = searchParams.toString();
+    if (currentQs !== lastSearchedRef.current) {
+        setSearchQuery(searchParams.get('q') || '');
+        // For dates we only sync if they actually changed significantly to avoid jitter
+        const newFrom = searchParams.get('from');
+        const newTo = searchParams.get('to');
+        if (newFrom && newTo) {
+            setDate({ from: parseISO(newFrom), to: parseISO(newTo) });
+        }
+        
+        lastSearchedRef.current = currentQs;
+        // Run search for new external params
+        if (indexFromQuery) {
+            performSearch(false);
+        }
+    }
+  }, [searchParams, indexFromQuery, performSearch]);
 
   const handleSort = (field: string) => {
     if (!isSortable(field)) return;
@@ -198,7 +222,10 @@ function SearchContent() {
         <div className="">
           <Select 
             value={indexFromQuery} 
-            onValueChange={(val) => updateUrl(val, searchQuery, date)}
+            onValueChange={(val) => {
+                // Changing index should trigger search immediately and update URL
+                updateUrl(val, searchQuery, date);
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select Index" />
@@ -218,14 +245,14 @@ function SearchContent() {
             placeholder="Search..."
             value={searchQuery}
             onChange={setSearchQuery}
-            onSearch={handleSearch}
+            onSearch={() => performSearch(true)}
             index={indexFromQuery}
           />
         </div>
 
         <DatePickerWithRange date={date} setDate={setDate} />
 
-        <Button className="w-full md:w-auto" onClick={handleSearch} disabled={loading}>Search</Button>
+        <Button className="w-full md:w-auto" onClick={() => performSearch(true)} disabled={loading}>Search</Button>
       </header>
 
       <main className="flex-1 flex min-h-0 overflow-hidden relative">

@@ -6,6 +6,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const isElectron = () => {
-  return typeof window !== 'undefined' && 
-    ((window as any).process?.type === 'renderer' || !!window.navigator.userAgent.includes('Electron'));
+  if (typeof window === 'undefined') return false;
+  
+  return (
+    (window as any).electron !== undefined ||
+    window.navigator.userAgent.includes('Electron') ||
+    (window as any).process?.versions?.electron !== undefined
+  );
 };

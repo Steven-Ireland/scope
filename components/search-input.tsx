@@ -47,6 +47,7 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
   const [activeIndex, setActiveIndex] = React.useState(-1);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const lastRequestRef = React.useRef<number>(0);
 
   React.useEffect(() => {
     if (!index) return;
@@ -60,11 +61,11 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
   }, [index]);
 
   const updateSuggestions = React.useCallback(async (text: string, cursorPosition: number) => {
+    const requestId = ++lastRequestRef.current;
+    
     const textBeforeCursor = text.slice(0, cursorPosition);
     const textAfterCursor = text.slice(cursorPosition);
     
-    // Only suggest if we are at the end of a "word" or right after a colon
-    // We check if the next character is whitespace or the end of the string.
     const isAtWordEnd = textAfterCursor.length === 0 || /^\s/.test(textAfterCursor);
     
     if (!isAtWordEnd) {
@@ -88,6 +89,8 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
           type: fieldType || '' 
         });
         
+        if (requestId !== lastRequestRef.current) return;
+
         if (Array.isArray(values) && values.length > 0) {
           setSuggestions(values.map(v => ({
             label: String(v),
@@ -100,8 +103,10 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
           setIsOpen(false);
         }
       } catch (err) {
-        console.error('Error fetching values:', err);
-        setIsOpen(false);
+        if (requestId === lastRequestRef.current) {
+          console.error('Error fetching values:', err);
+          setIsOpen(false);
+        }
       }
     } else {
       const matches = fields
@@ -152,11 +157,9 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
     const newValue = newTextBefore + textAfterCursor;
     onChange(newValue);
     
-    // Position cursor after the inserted text
     const newPos = newTextBefore.length;
 
     if (suggestion.kind === 'field') {
-        // If we just completed a field, show value suggestions immediately
         updateSuggestions(newValue, newPos);
     } else {
         setIsOpen(false);
@@ -223,8 +226,12 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
           updateSuggestions(e.target.value, e.target.selectionStart || 0);
         }}
         onKeyUp={(e) => {
-          // Only trigger if it was an arrow key movement
-          if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) {
+          if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+            handleCursorMove(e);
+          }
+          // Don't trigger suggestion update on Up/Down if the menu is open, 
+          // as handleKeyDown already handled the selection.
+          if (['ArrowUp', 'ArrowDown'].includes(e.key) && !isOpen) {
             handleCursorMove(e);
           }
         }}

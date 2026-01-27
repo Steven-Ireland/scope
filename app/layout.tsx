@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+'use client';
+
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
@@ -14,11 +15,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Scope - Data Explorer",
-  description: "Minimalist Elasticsearch explorer",
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,6 +22,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
+      <head>
+        <title>Scope - Data Explorer</title>
+        <meta name="description" content="Minimalist Elasticsearch explorer" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <div className="flex h-screen overflow-hidden">
           <Suspense fallback={<div className="w-16 border-r bg-card h-screen" />}>

@@ -4,6 +4,7 @@ const isElectron = process.env.NEXT_PUBLIC_IS_ELECTRON === 'true';
 
 const nextConfig: NextConfig = {
   output: isElectron ? 'export' : undefined,
+  trailingSlash: true,
   pageExtensions: isElectron 
     ? ['tsx', 'ts', 'jsx', 'js'] 
     : ['web.ts', 'web.tsx', 'tsx', 'ts', 'jsx', 'js'],

@@ -75,11 +75,6 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
     const words = textBeforeCursor.split(/(\s+)/);
     const lastWord = words[words.length - 1];
 
-    if (!lastWord || !lastWord.trim()) {
-      setIsOpen(false);
-      return;
-    }
-
     if (lastWord.includes(':')) {
       const [fieldName, ...valueParts] = lastWord.split(':');
       const valuePrefix = valueParts.join(':');
@@ -107,7 +102,8 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
     } else {
       const matches = fields
         .filter(f =>
-          f.name.toLowerCase().startsWith(lastWord.toLowerCase()) && f.name.toLowerCase() !== lastWord.toLowerCase()
+          f.name.toLowerCase().startsWith(lastWord.toLowerCase()) && 
+          (lastWord === '' || f.name.toLowerCase() !== lastWord.toLowerCase())
         )
         .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -219,6 +215,9 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onClick={handleCursorMove}
+        onFocus={(e) => {
+          updateSuggestions(e.target.value, e.target.selectionStart || 0);
+        }}
         onKeyUp={(e) => {
           // Only trigger if it was an arrow key movement
           if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) {

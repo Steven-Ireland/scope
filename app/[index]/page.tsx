@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname, useParams } from 'next/navigation';
+import { X } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -22,11 +23,14 @@ import {
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { addDays, parseISO } from 'date-fns';
 import { DateRange } from 'react-day-picker';
+import { Separator } from '@/components/ui/separator';
 
 interface LogEntry {
   _id: string;
   _source: {
     '@timestamp': string;
+    level?: string;
+    message?: string;
     [key: string]: unknown;
   };
 }
@@ -42,6 +46,7 @@ function SearchContent() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   
   const [date, setDate] = useState<DateRange | undefined>(() => {
     const fromStr = searchParams.get('from');
@@ -67,13 +72,6 @@ function SearchContent() {
     
     if (query) newParams.set('q', query);
     
-    // Default range is roughly "now" and "24h ago".
-    // We only want to persist the date to the URL if it's NOT the default or if we want it to be permanent.
-    // However, since "now" changes every second, we'll check if the range is roughly "last 24h" 
-    // or if the user hasn't explicitly set a custom range yet.
-    // For simplicity, we can just check if they differ significantly from "now" and "24h ago" 
-    // OR just always omit them if we want to keep URLs super clean by default.
-    // Let's omit them if they are close to the default calculated values (within 1 minute).
     const defaultFrom = addDays(new Date(), -1);
     const defaultTo = new Date();
     
@@ -150,8 +148,8 @@ function SearchContent() {
   const columns = getColumns();
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="border-b p-4 flex flex-col md:flex-row md:items-center gap-4 bg-card">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
+      <header className="border-b p-4 flex flex-col md:flex-row md:items-center gap-4 bg-card shrink-0">
         <div className="">
           <Select 
             value={indexFromPath} 
@@ -185,10 +183,10 @@ function SearchContent() {
         <Button className="w-full md:w-auto" onClick={handleSearch} disabled={loading}>Search</Button>
       </header>
 
-      <main className="overflow-auto">
-        <div className="">
+      <main className="flex-1 flex min-h-0 overflow-hidden relative">
+        <div className="flex-1 overflow-auto min-w-0">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow>
                 {columns.map(col => (
                   <TableHead key={col} className={col === '@timestamp' ? 'w-48' : ''}>
@@ -201,19 +199,23 @@ function SearchContent() {
               {logs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No results found.
+                    {loading ? 'Searching...' : 'No results found.'}
                   </TableCell>
                 </TableRow>
               ) : (
                 logs.map((log) => (
-                  <TableRow key={log._id} className="cursor-pointer hover:bg-muted/50">
+                  <TableRow 
+                    key={log._id} 
+                    className={`cursor-pointer hover:bg-muted/50 ${selectedLog?._id === log._id ? 'bg-muted' : ''}`}
+                    onClick={() => setSelectedLog(log)}
+                  >
                     {columns.map(col => (
                       <TableCell key={col} className={col === '@timestamp' ? 'font-mono text-xs' : 'max-w-lg truncate'}>
                         {col === 'level' ? (
                           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                              log._source.level === 'error' ? 'bg-red-50 text-red-700 ring-red-600/10' :
-                              log._source.level === 'warn' ? 'bg-yellow-50 text-yellow-800 ring-yellow-600/20' :
-                              'bg-gray-50 text-gray-600 ring-gray-500/10'
+                              log._source.level === 'error' ? 'bg-red-500/10 text-red-500 ring-red-500/20' :
+                              log._source.level === 'warn' ? 'bg-yellow-500/10 text-yellow-500 ring-yellow-500/20' :
+                              'bg-gray-500/10 text-gray-400 ring-gray-500/20'
                           }`}>
                               {log._source.level}
                           </span>
@@ -230,6 +232,34 @@ function SearchContent() {
             </TableBody>
           </Table>
         </div>
+
+        {selectedLog && (
+          <div className="absolute inset-y-0 right-0 w-full md:w-1/2 lg:w-1/3 border-l bg-card shadow-2xl z-30 flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="p-4 border-b flex items-center justify-between shrink-0">
+              <h2 className="font-semibold text-lg">Document Details</h2>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedLog(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 space-y-4">
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-muted-foreground uppercase">ID</span>
+                <p className="font-mono text-sm break-all">{selectedLog._id}</p>
+              </div>
+              <Separator />
+              {Object.entries(selectedLog._source).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => (
+                <div key={key} className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase">{key}</span>
+                  <div className="bg-muted/30 rounded p-2 overflow-auto">
+                    <pre className="text-sm font-mono whitespace-pre-wrap break-all">
+                      {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                    </pre>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

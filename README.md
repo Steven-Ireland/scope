@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Scope
 
-## Getting Started
+> **Note**: This project is currently a **Work in Progress**.
 
-First, run the development server:
+**Scope** is a lightweight, modern data explorer for Elasticsearch, designed as a minimalist alternative to Kibana. It focuses on speed, simplicity, and a clean user experience for developers who need to quickly browse and search their log data.
 
+![Scope Screenshot](docs/screenshot.png)
+
+## Key Features
+
+- **Index Discovery**: Automatically fetches and lists available non-system indices.
+- **Smart Autocomplete**: Search bar suggests field names based on the active index's mapping.
+- **Shareable URLs**: Application state (index, query, time range, sorting) is synchronized with the URL.
+- **Dynamic Data Explorer**: Table columns automatically adjust based on the fields present in the selected index.
+- **Sortable Headers**: Clickable column headers that reflect sorting in the Elasticsearch query (supports non-text fields).
+
+## Quick Start
+
+### 1. Prerequisites
+- Docker and Docker Compose
+- Node.js (v18+)
+
+### 2. Start Infrastructure
+Spin up the local Elasticsearch instance:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker-compose up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Seed Data
+Populate Elasticsearch with sample log and metric data:
+```bash
+npm run seed
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Run Application
+Start the development server:
+```bash
+npm install
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Tech Stack
+- **Frontend**: Next.js 16 (App Router), React, Tailwind CSS v4
+- **UI Components**: shadcn/ui (Radix UI)
+- **Icons**: Lucide React
+- **Backend**: Next.js API Routes
+- **Database**: Elasticsearch v8
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+MIT

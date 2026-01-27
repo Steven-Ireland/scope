@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
+const isElectron = process.env.NEXT_PUBLIC_IS_ELECTRON === 'true';
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: isElectron ? 'export' : undefined,
+  pageExtensions: isElectron 
+    ? ['tsx', 'ts', 'jsx', 'js'] 
+    : ['web.ts', 'web.tsx', 'tsx', 'ts', 'jsx', 'js'],
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;

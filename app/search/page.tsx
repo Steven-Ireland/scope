@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
-import { useSearchParams, useRouter, usePathname, useParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import {
   Select,
@@ -24,6 +24,7 @@ import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { addDays, parseISO } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { Separator } from '@/components/ui/separator';
+import { apiClient } from '@/lib/api-client';
 
 interface LogEntry {
   _id: string;
@@ -39,8 +40,7 @@ function SearchContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const params = useParams();
-  const indexFromPath = params.index as string;
+  const indexFromQuery = searchParams.get('index') || '';
 
   const [indices, setIndices] = useState<{ index: string }[]>([]);
   const [fields, setFields] = useState<{ name: string, type: string }[]>([]);
@@ -73,6 +73,7 @@ function SearchContent() {
   const updateUrl = useCallback((index: string, query: string, range: DateRange | undefined, sField?: string, sOrder?: string) => {
     const newParams = new URLSearchParams();
     
+    if (index) newParams.set('index', index);
     if (query) newParams.set('q', query);
     
     const defaultFrom = addDays(new Date(), -1);
@@ -91,8 +92,7 @@ function SearchContent() {
     if (currentSortOrder !== 'desc') newParams.set('order', currentSortOrder);
 
     const qs = newParams.toString();
-    const newPath = `/${index}`;
-    const url = qs ? `${newPath}?${qs}` : newPath;
+    const url = qs ? `${pathname}?${qs}` : pathname;
     
     const currentUrl = pathname + (searchParams.toString() ? '?' + searchParams.toString() : '');
     if (url !== currentUrl) {
@@ -101,8 +101,7 @@ function SearchContent() {
   }, [pathname, router, searchParams, sortField, sortOrder]);
 
   useEffect(() => {
-    fetch('/api/indices')
-      .then((res) => res.json())
+    apiClient.getIndices()
       .then((data) => {
         setIndices(data);
       })
@@ -117,9 +116,8 @@ function SearchContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (indexFromPath) {
-      fetch(`/api/fields?index=${indexFromPath}`)
-        .then((res) => res.json())
+    if (indexFromQuery) {
+      apiClient.getFields(indexFromQuery)
         .then((data) => {
           setFields(data);
           const exists = data.some((f: { name: string }) => f.name === sortField);
@@ -130,47 +128,42 @@ function SearchContent() {
         })
         .catch((err) => console.error('Error fetching fields:', err));
     }
-  }, [indexFromPath]); // We only want to check this when index changes
+  }, [indexFromQuery]);
 
   const isSortable = (field: string) => {
     const fieldDef = fields.find(f => f.name === field);
-    if (!fieldDef) return field === '@timestamp'; // Default assumption for @timestamp
+    if (!fieldDef) return field === '@timestamp';
     return fieldDef.type !== 'text';
   };
 
   const handleSearch = useCallback(async () => {
-    if (!indexFromPath) return;
+    if (!indexFromQuery) return;
 
     setLoading(true);
-    updateUrl(indexFromPath, searchQuery, date);
+    updateUrl(indexFromQuery, searchQuery, date);
     
     try {
-      const res = await fetch('/api/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          index: indexFromPath,
-          query: searchQuery,
-          from: date?.from?.toISOString(),
-          to: date?.to?.toISOString(),
-          sortField,
-          sortOrder,
-        }),
+      const data = await apiClient.search({
+        index: indexFromQuery,
+        query: searchQuery,
+        from: date?.from?.toISOString(),
+        to: date?.to?.toISOString(),
+        sortField,
+        sortOrder,
       });
-      const data = await res.json();
       setLogs(data.hits?.hits || []);
     } catch (error) {
       console.error('Search failed:', error);
     } finally {
       setLoading(false);
     }
-  }, [indexFromPath, searchQuery, date, updateUrl, sortField, sortOrder]);
+  }, [indexFromQuery, searchQuery, date, updateUrl, sortField, sortOrder]);
 
   useEffect(() => {
-      if(indexFromPath) {
+      if(indexFromQuery) {
           handleSearch();
       }
-  }, [indexFromPath, date, handleSearch]);
+  }, [indexFromQuery, date, handleSearch]);
 
   const handleSort = (field: string) => {
     if (!isSortable(field)) return;
@@ -181,7 +174,7 @@ function SearchContent() {
     }
     setSortField(field);
     setSortOrder(newOrder);
-    updateUrl(indexFromPath, searchQuery, date, field, newOrder);
+    updateUrl(indexFromQuery, searchQuery, date, field, newOrder);
   };
 
   const getColumns = () => {
@@ -204,7 +197,7 @@ function SearchContent() {
       <header className="border-b p-4 flex flex-col md:flex-row md:items-center gap-4 bg-card shrink-0">
         <div className="">
           <Select 
-            value={indexFromPath} 
+            value={indexFromQuery} 
             onValueChange={(val) => updateUrl(val, searchQuery, date)}
           >
             <SelectTrigger>
@@ -226,7 +219,7 @@ function SearchContent() {
             value={searchQuery}
             onChange={setSearchQuery}
             onSearch={handleSearch}
-            index={indexFromPath}
+            index={indexFromQuery}
           />
         </div>
 
@@ -269,7 +262,7 @@ function SearchContent() {
               {logs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    {loading ? 'Searching...' : 'No results found.'}
+                    {loading ? 'Searching...' : (indexFromQuery ? 'No results found.' : 'Please select an index to start.')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -335,7 +328,7 @@ function SearchContent() {
   );
 }
 
-export default function IndexPage() {
+export default function SearchPage() {
   return (
     <Suspense fallback={<div className="p-8">Loading search...</div>}>
       <SearchContent />

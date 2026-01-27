@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { apiClient } from '@/lib/api-client';
 
 interface Field {
   name: string;
@@ -49,8 +50,7 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
 
   React.useEffect(() => {
     if (!index) return;
-    fetch(`/api/fields?index=${index}`)
-      .then(res => res.json())
+    apiClient.getFields(index)
       .then(data => {
         if (Array.isArray(data)) {
           setFields(data);
@@ -81,8 +81,12 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
       const fieldType = fields.find(f => f.name === fieldName)?.type;
       
       try {
-        const res = await fetch(`/api/values?index=${index}&field=${fieldName}&query=${valuePrefix}&type=${fieldType || ''}`);
-        const values = await res.json();
+        const values = await apiClient.getValues({ 
+          index, 
+          field: fieldName, 
+          query: valuePrefix, 
+          type: fieldType || '' 
+        });
         
         if (Array.isArray(values) && values.length > 0) {
           setSuggestions(values.map(v => ({

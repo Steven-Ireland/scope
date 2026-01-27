@@ -7,13 +7,13 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to default index
-    router.replace('/logs-events');
+    // Redirect to search page with default index
+    router.replace('/search?index=logs-events');
   }, [router]);
 
   return (
     <div className="p-8">
-      <p className="text-muted-foreground">Redirecting to default index...</p>
+      <p className="text-muted-foreground">Redirecting to search...</p>
     </div>
   );
 }

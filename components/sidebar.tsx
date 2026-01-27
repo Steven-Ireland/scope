@@ -1,25 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Search, Settings, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const params = useParams();
-  const index = params.index as string || 'logs-events';
+  const searchParams = useSearchParams();
+  const index = searchParams.get('index') || 'logs-events';
 
   const navItems = [
     {
       label: 'Search',
-      href: `/${index}`,
+      href: `/search?index=${index}`,
       icon: Search,
-      active: pathname === `/${index}` || pathname === '/',
+      active: pathname === `/search` || pathname === '/',
     },
     {
       label: 'Index Settings',
-      href: `/settings/index/${index}`,
+      href: `/settings/index?index=${index}`,
       icon: Database,
       active: pathname.startsWith('/settings/index'),
     },

@@ -5,35 +5,36 @@
 ## Project Overview
 
 - **Name**: Scope
-- **Type**: Single Page Application (SPA) / Data Explorer
+- **Type**: Desktop App (Electron) / Web SPA (React)
 - **Primary Goal**: Provide a fast interface for querying and visualizing Elasticsearch indices.
-- **Current Status**: MVP (Minimum Viable Product) - Core search and discovery features are implemented.
+- **Current Status**: MVP (Minimum Viable Product) - Core search, discovery, and basic visualizations are implemented.
 
 ## Key Features
 
 1.  **Index Discovery**: Automatically fetches and lists available non-system indices from the Elasticsearch cluster.
-2.  **Smart Autocomplete**: Search bar suggests field names based on the active index's mapping, facilitating faster query building.
-3.  **Shareable URLs**: Application state (index, query, time range) is synchronized with the URL, allowing easy sharing of specific search results.
-4.  **Dynamic Data Explorer**: Table columns automatically adjust based on the fields present in the selected index (e.g., handles both `logs-events` and `metrics-data`).
-5.  **Minimalist Navigation**: A collapsed, icon-only sidebar for quick access to Search, Index Settings, and App Settings.
-6.  **Dark Mode First**: A sleek, dark-themed UI built with `shadcn/ui` and Tailwind CSS, optimized for long coding sessions.
-7.  **Local Development Ready**: Includes a Dockerized Elasticsearch instance and a multi-index data seeder (`npm run seed`) to spin up a fully populated environment in seconds.
+2.  **Smart Autocomplete**: Search bar suggests field names based on the active index's mapping.
+3.  **Visualizations**: Integrated date histogram to visualize event distribution over time.
+4.  **Dynamic Data Explorer**: Table columns automatically adjust based on the fields present in the selected index.
+5.  **Flexible Connectivity**: Support for multiple Elasticsearch server configurations via the Server Settings.
+6.  **Dark Mode First**: A sleek, dark-themed UI built with `shadcn/ui` and Tailwind CSS v4.
+7.  **Local Development Ready**: Includes a Dockerized Elasticsearch instance and a multi-index data seeder (`npm run seed`).
 
 ## Architecture
 
 ### Frontend
--   **Framework**: Next.js 16 (App Router)
+-   **Framework**: React 19 (Vite)
+-   **Routing**: React Router v7
 -   **Styling**: Tailwind CSS v4
 -   **Components**: shadcn/ui (Radix UI primitives)
--   **Navigation**: Context-aware dynamic routing (`/[index]`, `/settings/index/[index]`)
+-   **Visualizations**: Recharts
 
-### Backend (BFF - Backend for Frontend)
--   **Runtime**: Next.js API Routes
+### Backend / Desktop
+-   **Runtime**: Node.js (Express) & Electron
 -   **Database Client**: `@elastic/elasticsearch` (v8)
 -   **Endpoints**:
     -   `GET /api/indices`: Lists available indices.
     -   `GET /api/fields`: Fetches flattened mapping fields for an index.
-    -   `POST /api/search`: Proxies Lucene-style queries to Elasticsearch.
+    -   `POST /api/search`: Proxies Lucene-style queries and aggregations to Elasticsearch.
 
 ## Quick Start
 
@@ -45,19 +46,23 @@
     ```bash
     npm run seed
     ```
-3.  **Run Application**:
+3.  **Run Web Application**:
     ```bash
     npm run dev
     ```
-    Open [http://localhost:3000](http://localhost:3000).
+4.  **Run Electron Application**:
+    ```bash
+    npm run electron-dev
+    ```
 
 ## Directory Structure
 
--   `/app`: Next.js App Router pages and API endpoints.
-    -   `/[index]`: Dynamic search view for a specific index.
-    -   `/settings`: Index and application configuration pages.
-    -   `/api`: Backend proxy routes (`indices`, `fields`, `search`).
--   `/components`: Reusable UI components (Sidebar, SearchInput, UI primitives).
--   `/lib`: Shared utilities (Elasticsearch client, Tailwind merge).
+-   `/src`: Frontend React application.
+    -   `/components`: UI components (Sidebar, SearchInput, UI primitives, Date Histogram).
+    -   `/pages`: Application pages (Search, App Settings, Server Settings).
+    -   `/lib`: Shared utilities and API client.
+    -   `/context`: React Context for server and app state.
+-   `/electron`: Electron main process, preload scripts, and Express server logic.
 -   `/scripts`: Utility scripts (data seeding).
+-   `/public`: Static assets.
 -   `docker-compose.yml`: Local infrastructure definition.

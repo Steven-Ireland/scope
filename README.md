@@ -1,24 +1,23 @@
 # Scope
 
-> **Note**: This project is currently a **Work in Progress**.
-
-**Scope** is a lightweight, modern data explorer for Elasticsearch, designed as a minimalist alternative to Kibana. It focuses on speed, simplicity, and a clean user experience for developers who need to quickly browse and search their log data.
+**Scope** is a lightweight, modern data explorer for Elasticsearch, designed as a minimalist alternative to Kibana. It focuses on speed, simplicity, and a clean user experience for developers who need to quickly browse and search their log data. Available as a desktop application and a web interface.
 
 ![Scope Screenshot](docs/screenshot.png)
 
 ## Key Features
 
+- **Desktop & Web**: Run as a standalone Electron app or in your browser.
 - **Index Discovery**: Automatically fetches and lists available non-system indices.
 - **Smart Autocomplete**: Search bar suggests field names based on the active index's mapping.
-- **Shareable URLs**: Application state (index, query, time range, sorting) is synchronized with the URL.
+- **Visualizations**: Built-in date histogram to see event spikes and trends.
 - **Dynamic Data Explorer**: Table columns automatically adjust based on the fields present in the selected index.
-- **Sortable Headers**: Clickable column headers that reflect sorting in the Elasticsearch query (supports non-text fields).
+- **Multi-Server Support**: Easily switch between local and production Elasticsearch clusters.
 
 ## Quick Start
 
 ### 1. Prerequisites
 - Docker and Docker Compose
-- Node.js (v18+)
+- Node.js (v20+)
 
 ### 2. Start Infrastructure
 Spin up the local Elasticsearch instance:
@@ -33,18 +32,25 @@ npm run seed
 ```
 
 ### 4. Run Application
-Start the development server:
+
+#### Web Interface:
 ```bash
 npm install
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+#### Desktop App (Electron):
+```bash
+npm run electron-dev
+```
 
 ## Tech Stack
-- **Frontend**: Next.js 16 (App Router), React, Tailwind CSS v4
+- **Frontend**: React 19, Vite 6, Tailwind CSS v4
+- **Desktop**: Electron
+- **Backend**: Express.js
 - **UI Components**: shadcn/ui (Radix UI)
-- **Icons**: Lucide React
-- **Backend**: Next.js API Routes
+- **Visualizations**: Recharts
 - **Database**: Elasticsearch v8
 
 ## License

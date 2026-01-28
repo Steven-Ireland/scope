@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useServer } from '@/context/server-context';
 import { Button } from '@/components/ui/button';
@@ -21,16 +21,45 @@ export default function ServerSettingsPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
+  
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
-    if (server) {
+    if (server && isInitialMount.current) {
       setName(server.name);
       setUrl(server.url);
       setUsername(server.username || '');
       setPassword(server.password || '');
       setSelectedColor(server.color || SERVER_COLORS[0].bg);
+      isInitialMount.current = false;
     }
   }, [server]);
+
+  // Auto-save effect
+  useEffect(() => {
+    if (!server || isInitialMount.current) return;
+
+    const hasChanged = 
+      name !== server.name ||
+      url !== server.url ||
+      (username || undefined) !== server.username ||
+      (password || undefined) !== server.password ||
+      selectedColor !== server.color;
+
+    if (hasChanged) {
+      const timeoutId = setTimeout(() => {
+        updateServer(server.id, {
+          name,
+          url,
+          username: username || undefined,
+          password: password || undefined,
+          color: selectedColor,
+        });
+      }, 500); // Debounce for 500ms
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [name, url, username, password, selectedColor, server, updateServer]);
 
   if (!server) {
     return (
@@ -40,18 +69,6 @@ export default function ServerSettingsPage() {
       </div>
     );
   }
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateServer(server.id, {
-      name,
-      url,
-      username: username || undefined,
-      password: password || undefined,
-      color: selectedColor,
-    });
-    // Optional: add a toast or success indicator
-  };
 
   const handleDelete = () => {
     if (confirm(`Are you sure you want to remove ${server.name}?`)) {
@@ -83,52 +100,49 @@ export default function ServerSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Connection Details</CardTitle>
-            <CardDescription>Configure how Scope connects to this Elasticsearch cluster.</CardDescription>
+            <CardDescription>Configure how Scope connects to this Elasticsearch cluster. Changes are saved automatically.</CardDescription>
           </CardHeader>
-          <form onSubmit={handleSave}>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Server Name</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Production logs" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="url">Elasticsearch URL</Label>
-                <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://localhost:9200" />
-              </div>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Server Name</Label>
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Production logs" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="url">Elasticsearch URL</Label>
+              <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://localhost:9200" />
+            </div>
 
-              <div className="grid gap-2">
-                <Label>Theme Color</Label>
-                <div className="flex flex-wrap gap-2">
-                  {SERVER_COLORS.map((color) => (
-                    <button
-                      key={color.bg}
-                      type="button"
-                      className={cn(
-                        "w-8 h-8 rounded-full border-2 transition-all",
-                        color.bg,
-                        selectedColor === color.bg ? "border-white scale-110" : "border-transparent hover:scale-105"
-                      )}
-                      onClick={() => setSelectedColor(color.bg)}
-                      title={color.name}
-                    />
-                  ))}
-                </div>
+            <div className="grid gap-2">
+              <Label>Theme Color</Label>
+              <div className="flex flex-wrap gap-2">
+                {SERVER_COLORS.map((color) => (
+                  <button
+                    key={color.bg}
+                    type="button"
+                    className={cn(
+                      "w-8 h-8 rounded-full border-2 transition-all",
+                      color.bg,
+                      selectedColor === color.bg ? "border-white scale-110" : "border-transparent hover:scale-105"
+                    )}
+                    onClick={() => setSelectedColor(color.bg)}
+                    title={color.name}
+                  />
+                ))}
               </div>
+            </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="username">Username (Optional)</Label>
-                <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password (Optional)</Label>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              </div>
-            </CardContent>
-            <CardFooter className="justify-between border-t p-6 mt-4">
-              <Button type="button" variant="destructive" onClick={handleDelete}>Delete Server</Button>
-              <Button type="submit">Save Changes</Button>
-            </CardFooter>
-          </form>
+            <div className="grid gap-2">
+              <Label htmlFor="username">Username (Optional)</Label>
+              <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password (Optional)</Label>
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+          </CardContent>
+          <CardFooter className="justify-start border-t p-6 mt-4">
+            <Button type="button" variant="destructive" onClick={handleDelete}>Delete Server</Button>
+          </CardFooter>
         </Card>
 
         <Card className="border-yellow-500/20 bg-yellow-500/5">

@@ -1,5 +1,5 @@
 export const SERVER_COLORS = [
-  { name: 'Slate', bg: 'bg-slate-500', hover: 'hover:bg-slate-500', text: 'text-white' },
+  { name: 'Cyan', bg: 'bg-cyan-500', hover: 'hover:bg-cyan-500', text: 'text-white' },
   { name: 'Blue', bg: 'bg-blue-500', hover: 'hover:bg-blue-500', text: 'text-white' },
   { name: 'Green', bg: 'bg-green-500', hover: 'hover:bg-green-500', text: 'text-white' },
   { name: 'Red', bg: 'bg-red-500', hover: 'hover:bg-red-500', text: 'text-white' },

@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { LogEntry, ElasticsearchField } from '@/types/elasticsearch';
+import { useCallback } from 'react';
 
 interface ResultsTableProps {
   logs: LogEntry[];
@@ -33,11 +34,11 @@ export function ResultsTable({
   selectedLogId,
   fields,
 }: ResultsTableProps) {
-  const isSortable = (field: string) => {
+  const isSortable = useCallback((field: string) => {
     const fieldDef = fields.find((f) => f.name === field);
     if (!fieldDef) return field === '@timestamp';
     return fieldDef.type !== 'text';
-  };
+  }, [fields]);
 
   return (
     <div className="flex-1 overflow-auto min-w-0">

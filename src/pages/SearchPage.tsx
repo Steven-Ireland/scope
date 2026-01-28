@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { useSearchState } from '@/hooks/use-search-state';
 import { useIndices, useFields, useSearch } from '@/hooks/use-elasticsearch';
 import { DateHistogram } from '@/components/date-histogram';
@@ -57,11 +57,25 @@ function SearchContent() {
     })) || EMPTY_ARRAY;
   }, [searchResults]);
 
+  const getDefaultColumns = useCallback((fieldsList: any[]) => {
+    if (fieldsList.length === 0) return ['@timestamp'];
+    
+    // Pick dynamic defaults: @timestamp + first 4 non-meta fields
+    const defaults = fieldsList.some(f => f.name === '@timestamp') ? ['@timestamp'] : [];
+    const others = fieldsList
+      .filter(f => f.name !== '@timestamp' && !f.name.startsWith('_'))
+      .slice(0, 4)
+      .map(f => f.name);
+    
+    const combined = [...defaults, ...others];
+    return combined.length > 0 ? combined : ['_source'];
+  }, []);
+
   // Column management - Dynamic defaults based on fields
   useEffect(() => {
     if (!index) {
-        setVisibleColumns(EMPTY_ARRAY);
-        return;
+      setVisibleColumns(EMPTY_ARRAY);
+      return;
     }
 
     const saved = localStorage.getItem(`scope_columns_${index}`);
@@ -72,26 +86,14 @@ function SearchContent() {
         console.error('Error parsing saved columns', e);
       }
     } else if (fields.length > 0) {
-      // Pick dynamic defaults: @timestamp + first 4 non-meta fields
-      const defaults = fields.some(f => f.name === '@timestamp') ? ['@timestamp'] : [];
-      const others = fields
-        .filter(f => f.name !== '@timestamp' && !f.name.startsWith('_'))
-        .slice(0, 4)
-        .map(f => f.name);
-      
-      const combined = [...defaults, ...others];
-      if (combined.length > 0) {
-        setVisibleColumns(combined);
-      } else {
-        setVisibleColumns(['_source']); // Absolute fallback
-      }
+      setVisibleColumns(getDefaultColumns(fields));
     } else {
-        // While loading fields, at least show timestamp if common
-        setVisibleColumns(['@timestamp']);
+      // While loading fields, at least show timestamp if common
+      setVisibleColumns(['@timestamp']);
     }
-  }, [index, fields]);
+  }, [index, fields, getDefaultColumns]);
 
-  const handleToggleColumn = (col: string) => {
+  const handleToggleColumn = useCallback((col: string) => {
     setVisibleColumns((prev) => {
       if (prev.includes(col)) {
         return prev.filter((c) => c !== col);
@@ -103,58 +105,54 @@ function SearchContent() {
         });
       }
     });
-  };
+  }, []);
 
-  const handleSaveDefaultColumns = () => {
+  const handleSaveDefaultColumns = useCallback(() => {
     if (index) {
       localStorage.setItem(`scope_columns_${index}`, JSON.stringify(visibleColumns));
     }
-  };
+  }, [index, visibleColumns]);
 
-  const handleResetColumns = () => {
-    if (fields.length > 0) {
-        const defaults = fields.some(f => f.name === '@timestamp') ? ['@timestamp'] : [];
-        const others = fields
-          .filter(f => f.name !== '@timestamp' && !f.name.startsWith('_'))
-          .slice(0, 4)
-          .map(f => f.name);
-        setVisibleColumns([...defaults, ...others]);
-    } else {
-        setVisibleColumns(['@timestamp']);
-    }
-  };
+  const handleResetColumns = useCallback(() => {
+    setVisibleColumns(getDefaultColumns(fields));
+  }, [fields, getDefaultColumns]);
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     updateSearch({ q: searchInput });
-  };
+  }, [updateSearch, searchInput]);
 
-  const handleSort = (field: string) => {
+  const handleSort = useCallback((field: string) => {
     let newOrder: 'asc' | 'desc' = 'desc';
     if (sortField === field) {
       newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
     }
     setSort(field, newOrder);
-  };
+  }, [sortField, sortOrder, setSort]);
 
-  const handleSelectLog = (log: LogEntry) => {
-    console.log('Selecting log:', log._id);
+  const handleSelectLog = useCallback((log: LogEntry) => {
     setSelectedLog(log);
-  };
+  }, []);
+
+  const handleIndexChange = useCallback((newIndex: string) => {
+    setSelectedLog(null);
+    updateSearch({ index: newIndex });
+  }, [updateSearch]);
+
+  const handleDateRangeChange = useCallback((range: any) => {
+    setDateRange(range);
+  }, [setDateRange]);
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       <SearchHeader
         indices={indices}
         selectedIndex={index}
-        onIndexChange={(newIndex) => {
-          setSelectedLog(null);
-          updateSearch({ index: newIndex });
-        }}
+        onIndexChange={handleIndexChange}
         searchQuery={searchInput}
         onSearchQueryChange={setSearchInput}
         onSearch={handleSearch}
         dateRange={dateRange}
-        onDateRangeChange={setDateRange}
+        onDateRangeChange={handleDateRangeChange}
         fields={fields}
         fieldsLoading={fieldsLoading}
         visibleColumns={visibleColumns}

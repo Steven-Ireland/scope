@@ -25,6 +25,12 @@
     "directories": {
       "output": "dist-electron"
     },
+    "dmg": {
+      "writeUpdateInfo": false
+    },
+    "nsis": {
+      "differentialPackage": false
+    },
     "publish": [
       {
         "provider": "github",
@@ -48,16 +54,14 @@
       "category": "public.app-category.developer-tools",
       "target": [
         "dmg"
-      ],
-      "writeUpdateInfo": false
+      ]
     },
     "win": {
       "icon": "public/favicon.ico",
       "target": [
         "nsis",
         "portable"
-      ],
-      "differentialPackage": false
+      ]
     }
   },
   "dependencies": {

@@ -19,6 +19,8 @@ export function ServerDialog({ open, onOpenChange, onSave }: ServerDialogProps) 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [selectedColor, setSelectedColor] = useState(SERVER_COLORS[0].bg);
+  const [certPath, setCertPath] = useState('');
+  const [keyPath, setKeyPath] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -27,6 +29,8 @@ export function ServerDialog({ open, onOpenChange, onSave }: ServerDialogProps) 
       setUsername('');
       setPassword('');
       setSelectedColor(SERVER_COLORS[0].bg);
+      setCertPath('');
+      setKeyPath('');
     }
   }, [open]);
 
@@ -37,13 +41,22 @@ export function ServerDialog({ open, onOpenChange, onSave }: ServerDialogProps) 
       username: username || undefined,
       password: password || undefined,
       color: selectedColor,
+      certPath: certPath || undefined,
+      keyPath: keyPath || undefined,
     });
     onOpenChange(false);
   };
 
+  const handleSelectFile = async (setter: (val: string) => void, title: string) => {
+    if (window.electron?.selectFile) {
+      const path = await window.electron.selectFile(title);
+      if (path) setter(path);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Server</DialogTitle>
         </DialogHeader>
@@ -74,13 +87,32 @@ export function ServerDialog({ open, onOpenChange, onSave }: ServerDialogProps) 
               ))}
             </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="username">Username (Optional)</Label>
-            <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="elastic" />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password (Optional)</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          
+          <div className="border-t pt-4 mt-2 space-y-4">
+            <h4 className="text-sm font-semibold">Authentication (Optional)</h4>
+            <div className="grid gap-2">
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="elastic" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="cert">Client Certificate (CRT)</Label>
+              <div className="flex gap-2">
+                <Input id="cert" value={certPath} onChange={(e) => setCertPath(e.target.value)} placeholder="/path/to/client.crt" className="flex-1" />
+                <Button variant="outline" size="sm" onClick={() => handleSelectFile(setCertPath, 'Select Client Certificate')}>Browse</Button>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="key">Client Key</Label>
+              <div className="flex gap-2">
+                <Input id="key" value={keyPath} onChange={(e) => setKeyPath(e.target.value)} placeholder="/path/to/client.key" className="flex-1" />
+                <Button variant="outline" size="sm" onClick={() => handleSelectFile(setKeyPath, 'Select Client Key')}>Browse</Button>
+              </div>
+            </div>
           </div>
         </div>
         <DialogFooter>

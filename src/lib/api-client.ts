@@ -11,6 +11,7 @@ declare global {
       isElectron: boolean;
       saveConfig: (config: any) => Promise<{ success: boolean; error?: string }>;
       loadConfig: () => Promise<any>;
+      selectFile: (title?: string) => Promise<string | null>;
     }
   }
 }
@@ -32,6 +33,8 @@ const getHeaders = (server?: ServerConfig) => {
     headers['x-scope-url'] = server.url;
     if (server.username) headers['x-scope-username'] = server.username;
     if (server.password) headers['x-scope-password'] = server.password;
+    if (server.certPath) headers['x-scope-cert'] = server.certPath;
+    if (server.keyPath) headers['x-scope-key'] = server.keyPath;
   }
   return headers;
 };

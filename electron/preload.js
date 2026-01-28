@@ -5,4 +5,5 @@ contextBridge.exposeInMainWorld('electron', {
   isElectron: true,
   saveConfig: (config) => ipcRenderer.invoke('save-config', config),
   loadConfig: () => ipcRenderer.invoke('load-config'),
+  selectFile: (title) => ipcRenderer.invoke('select-file', title),
 });

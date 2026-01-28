@@ -5,4 +5,6 @@ export interface ServerConfig {
   username?: string;
   password?: string;
   color?: string;
+  certPath?: string;
+  keyPath?: string;
 }

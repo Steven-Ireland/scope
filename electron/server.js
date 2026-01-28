@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
 const { Client } = require('@elastic/elasticsearch');
 
 const app = express();
@@ -10,12 +11,23 @@ const getClient = (req) => {
   const url = req.headers['x-scope-url'] || process.env.ELASTICSEARCH_URL || 'http://localhost:9200';
   const username = req.headers['x-scope-username'];
   const password = req.headers['x-scope-password'];
+  const certPath = req.headers['x-scope-cert'];
+  const keyPath = req.headers['x-scope-key'];
 
   const config = {
     node: url,
     auth: (username && password) ? { username, password } : undefined,
-    tls: { rejectUnauthorized: false } 
+    tls: { 
+      rejectUnauthorized: false 
+    }
   };
+
+  if (certPath && fs.existsSync(certPath)) {
+    config.tls.cert = fs.readFileSync(certPath);
+  }
+  if (keyPath && fs.existsSync(keyPath)) {
+    config.tls.key = fs.readFileSync(keyPath);
+  }
 
   return new Client(config);
 };

@@ -16,11 +16,11 @@ export default function ServerSettingsPage() {
   
   const server = servers.find(s => s.id === serverId);
 
-  const [name, setName] = useState('');
-  const [url, setUrl] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
+  const [certPath, setCertPath] = useState('');
+  const [keyPath, setKeyPath] = useState('');
   
   const isInitialMount = useRef(true);
 
@@ -31,6 +31,8 @@ export default function ServerSettingsPage() {
       setUsername(server.username || '');
       setPassword(server.password || '');
       setSelectedColor(server.color || SERVER_COLORS[0].bg);
+      setCertPath(server.certPath || '');
+      setKeyPath(server.keyPath || '');
       isInitialMount.current = false;
     }
   }, [server]);
@@ -44,7 +46,9 @@ export default function ServerSettingsPage() {
       url !== server.url ||
       (username || undefined) !== server.username ||
       (password || undefined) !== server.password ||
-      selectedColor !== server.color;
+      selectedColor !== server.color ||
+      (certPath || undefined) !== server.certPath ||
+      (keyPath || undefined) !== server.keyPath;
 
     if (hasChanged) {
       const timeoutId = setTimeout(() => {
@@ -54,12 +58,14 @@ export default function ServerSettingsPage() {
           username: username || undefined,
           password: password || undefined,
           color: selectedColor,
+          certPath: certPath || undefined,
+          keyPath: keyPath || undefined,
         });
       }, 500); // Debounce for 500ms
 
       return () => clearTimeout(timeoutId);
     }
-  }, [name, url, username, password, selectedColor, server, updateServer]);
+  }, [name, url, username, password, selectedColor, certPath, keyPath, server, updateServer]);
 
   if (!server) {
     return (
@@ -74,6 +80,13 @@ export default function ServerSettingsPage() {
     if (confirm(`Are you sure you want to remove ${server.name}?`)) {
       removeServer(server.id);
       navigate('/search');
+    }
+  };
+
+  const handleSelectFile = async (setter: (val: string) => void, title: string) => {
+    if (window.electron?.selectFile) {
+      const path = await window.electron.selectFile(title);
+      if (path) setter(path);
     }
   };
 
@@ -138,6 +151,24 @@ export default function ServerSettingsPage() {
             <div className="grid gap-2">
               <Label htmlFor="password">Password (Optional)</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+
+            <div className="border-t pt-4 mt-2 space-y-4">
+              <h4 className="text-sm font-semibold">Client Certificate Authentication</h4>
+              <div className="grid gap-2">
+                <Label htmlFor="cert">Client Certificate (CRT)</Label>
+                <div className="flex gap-2">
+                  <Input id="cert" value={certPath} onChange={(e) => setCertPath(e.target.value)} placeholder="/path/to/client.crt" className="flex-1" />
+                  <Button variant="outline" size="sm" onClick={() => handleSelectFile(setCertPath, 'Select Client Certificate')}>Browse</Button>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="key">Client Key</Label>
+                <div className="flex gap-2">
+                  <Input id="key" value={keyPath} onChange={(e) => setKeyPath(e.target.value)} placeholder="/path/to/client.key" className="flex-1" />
+                  <Button variant="outline" size="sm" onClick={() => handleSelectFile(setKeyPath, 'Select Client Key')}>Browse</Button>
+                </div>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="justify-start border-t p-6 mt-4">

@@ -1,4 +1,17 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+
+// ... (config handlers)
+
+ipcMain.handle('select-file', async (event, title) => {
+  const result = await dialog.showOpenDialog({
+    title: title || 'Select File',
+    properties: ['openFile'],
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+  return result.filePaths[0];
+});
 const path = require('path');
 const fs = require('fs');
 const serve = require('electron-serve');

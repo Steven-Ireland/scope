@@ -29,7 +29,8 @@
       {
         "provider": "github",
         "owner": "Steven-Ireland",
-        "repo": "scope"
+        "repo": "scope",
+        "releaseType": "release"
       }
     ],
     "files": [
@@ -40,7 +41,6 @@
     ],
     "linux": {
       "target": [
-        "AppImage",
         "deb"
       ]
     },
@@ -48,15 +48,16 @@
       "category": "public.app-category.developer-tools",
       "target": [
         "dmg",
-        "zip"
-      ]
+      ],
+      "writeUpdateInfo": false
     },
     "win": {
       "icon": "public/favicon.ico",
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "differentialPackage": false
     }
   },
   "dependencies": {

@@ -11,18 +11,22 @@ declare global {
   }
 }
 
+const getBaseUrl = () => {
+  if (isElectron()) {
+    return 'http://localhost:3001';
+  }
+  return '';
+};
+
+const BASE_URL = getBaseUrl();
+
 export const apiClient = {
   async search(params: any) {
-    if (isElectron() && window.electron) {
-      try {
-        return await window.electron.search(params);
-      } catch (err) {
-        console.error('Electron IPC Search Error:', err);
-        throw err;
-      }
-    }
+    // We can still use IPC if available, but let's prefer the Express server 
+    // to fulfill the user's request of using an Express server.
+    // If you want to keep IPC as a fallback, you can.
     
-    const res = await fetch('/api/search', {
+    const res = await fetch(`${BASE_URL}/api/search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
@@ -37,16 +41,7 @@ export const apiClient = {
   },
 
   async getIndices() {
-    if (isElectron() && window.electron) {
-      try {
-        return await window.electron.getIndices();
-      } catch (err) {
-        console.error('Electron IPC GetIndices Error:', err);
-        throw err;
-      }
-    }
-    
-    const res = await fetch('/api/indices');
+    const res = await fetch(`${BASE_URL}/api/indices`);
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`Failed to fetch indices: ${res.status} ${text.slice(0, 100)}`);
@@ -55,16 +50,7 @@ export const apiClient = {
   },
 
   async getFields(index: string) {
-    if (isElectron() && window.electron) {
-      try {
-        return await window.electron.getFields(index);
-      } catch (err) {
-        console.error('Electron IPC GetFields Error:', err);
-        throw err;
-      }
-    }
-    
-    const res = await fetch(`/api/fields?index=${index}`);
+    const res = await fetch(`${BASE_URL}/api/fields?index=${index}`);
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`Failed to fetch fields: ${res.status} ${text.slice(0, 100)}`);
@@ -73,17 +59,8 @@ export const apiClient = {
   },
 
   async getValues(params: { index: string; field: string; query?: string; type?: string }) {
-    if (isElectron() && window.electron) {
-      try {
-        return await window.electron.getValues(params);
-      } catch (err) {
-        console.error('Electron IPC GetValues Error:', err);
-        throw err;
-      }
-    }
-    
     const { index, field, query = '', type = '' } = params;
-    const res = await fetch(`/api/values?index=${index}&field=${field}&query=${query}&type=${type}`);
+    const res = await fetch(`${BASE_URL}/api/values?index=${index}&field=${field}&query=${query}&type=${type}`);
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`Failed to fetch values: ${res.status} ${text.slice(0, 100)}`);

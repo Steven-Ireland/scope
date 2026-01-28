@@ -46,6 +46,7 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
   const [suggestions, setSuggestions] = React.useState<Suggestion[]>([]);
   const [isOpen, setIsOpen] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(-1);
+  const [isFocused, setIsFocused] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const lastRequestRef = React.useRef<number>(0);
@@ -176,6 +177,12 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setIsOpen(false);
+      onSearch();
+      return;
+    }
+
     if (isOpen) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -183,22 +190,13 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setActiveIndex(i => (i - 1 + suggestions.length) % suggestions.length);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (activeIndex >= 0 && activeIndex < suggestions.length) {
-          selectSuggestion(suggestions[activeIndex]);
-        }
       } else if (e.key === 'Escape') {
         setIsOpen(false);
       } else if (e.key === 'Tab') {
-        e.preventDefault();
         if (activeIndex >= 0 && activeIndex < suggestions.length) {
+          e.preventDefault();
           selectSuggestion(suggestions[activeIndex]);
         }
-      }
-    } else {
-      if (e.key === 'Enter') {
-        onSearch();
       }
     }
   };
@@ -218,6 +216,34 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
     updateSuggestions(target.value, target.selectionStart || 0);
   };
 
+  const ghostText = React.useMemo(() => {
+    if (!isOpen || activeIndex < 0) return '';
+    
+    const suggestion = suggestions[activeIndex];
+    const cursorPosition = inputRef.current?.selectionStart || 0;
+    
+    // Only show ghost text if cursor is at the end of the text
+    if (cursorPosition !== value.length) return '';
+
+    const textBeforeCursor = value.slice(0, cursorPosition);
+    const words = textBeforeCursor.split(/(\s+)/);
+    const lastWord = words[words.length - 1];
+
+    if (suggestion.kind === 'field') {
+      if (suggestion.value.toLowerCase().startsWith(lastWord.toLowerCase())) {
+        return suggestion.value.slice(lastWord.length) + ':';
+      }
+    } else {
+      const [fieldName, ...valueParts] = lastWord.split(':');
+      const valuePrefix = valueParts.join(':');
+      if (suggestion.value.toLowerCase().startsWith(valuePrefix.toLowerCase())) {
+        return suggestion.value.slice(valuePrefix.length) + ' ';
+      }
+    }
+    
+    return '';
+  }, [isOpen, activeIndex, suggestions, value]);
+
   return (
     <div className="relative w-full" ref={containerRef}>
       <Input
@@ -227,7 +253,11 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
         onKeyDown={handleKeyDown}
         onClick={handleCursorMove}
         onFocus={(e) => {
+          setIsFocused(true);
           updateSuggestions(e.target.value, e.target.selectionStart || 0);
+        }}
+        onBlur={() => {
+          setIsFocused(false);
         }}
         onKeyUp={(e) => {
           if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
@@ -237,11 +267,20 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
             handleCursorMove(e);
           }
         }}
-        placeholder={placeholder}
+        placeholder={isFocused ? "" : placeholder}
         disabled={disabled}
         autoComplete="off"
-        className="font-mono"
+        className="font-mono relative z-10 bg-transparent dark:bg-transparent"
       />
+      {ghostText && (
+        <div 
+          className="absolute inset-0 px-3 py-1 text-base md:text-sm font-mono flex items-center pointer-events-none z-0"
+          aria-hidden="true"
+        >
+          <span className="opacity-0 whitespace-pre">{value}</span>
+          <span className="text-muted-foreground/50 whitespace-pre">{ghostText}</span>
+        </div>
+      )}
       {isOpen && (
         <div className="absolute z-50 w-full mt-1 bg-popover text-popover-foreground border rounded-md shadow-md overflow-hidden animate-in fade-in-0 zoom-in-95">
           <ul className="py-1 max-h-60 overflow-auto">

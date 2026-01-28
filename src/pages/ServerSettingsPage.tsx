@@ -16,6 +16,8 @@ export default function ServerSettingsPage() {
   
   const server = servers.find(s => s.id === serverId);
 
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [selectedColor, setSelectedColor] = useState('');

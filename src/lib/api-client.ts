@@ -88,5 +88,16 @@ export const apiClient = {
       throw new Error(`Failed to fetch values: ${res.status} ${text.slice(0, 100)}`);
     }
     return res.json();
+  },
+
+  async verifyServer(server: Omit<ServerConfig, 'id'> | ServerConfig) {
+    const res = await fetch(`${BASE_URL}/api/verify-server`, {
+      headers: getHeaders(server as ServerConfig),
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `Verification failed: ${res.status}`);
+    }
+    return res.json();
   }
 };

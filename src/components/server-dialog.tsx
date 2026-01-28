@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { ServerConfig } from '@/types/server';
 import { SERVER_COLORS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { apiClient } from '@/lib/api-client';
+import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
 interface ServerDialogProps {
   open: boolean;
@@ -21,6 +23,8 @@ export function ServerDialog({ open, onOpenChange, onSave }: ServerDialogProps) 
   const [selectedColor, setSelectedColor] = useState(SERVER_COLORS[0].bg);
   const [certPath, setCertPath] = useState('');
   const [keyPath, setKeyPath] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<{ success: boolean; version?: string; error?: string } | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -31,8 +35,30 @@ export function ServerDialog({ open, onOpenChange, onSave }: ServerDialogProps) 
       setSelectedColor(SERVER_COLORS[0].bg);
       setCertPath('');
       setKeyPath('');
+      setVerificationResult(null);
     }
   }, [open]);
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    setVerificationResult(null);
+    try {
+      const result = await apiClient.verifyServer({
+        name: name || 'Test',
+        url: url || 'http://localhost:9200',
+        username: username || undefined,
+        password: password || undefined,
+        color: selectedColor,
+        certPath: certPath || undefined,
+        keyPath: keyPath || undefined,
+      });
+      setVerificationResult({ success: true, version: result.version });
+    } catch (error: any) {
+      setVerificationResult({ success: false, error: error.message });
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const handleSave = () => {
     onSave({
@@ -67,7 +93,37 @@ export function ServerDialog({ open, onOpenChange, onSave }: ServerDialogProps) 
           </div>
           <div className="grid gap-2">
             <Label htmlFor="url">Elasticsearch URL</Label>
-            <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://localhost:9200" />
+            <div className="flex gap-2">
+              <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://localhost:9200" className="flex-1" />
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={handleVerify} 
+                disabled={verifying}
+                className="whitespace-nowrap"
+              >
+                {verifying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Test Connection
+              </Button>
+            </div>
+            {verificationResult && (
+              <div className={cn(
+                "flex items-center gap-2 text-xs p-2 rounded-md",
+                verificationResult.success ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+              )}>
+                {verificationResult.success ? (
+                  <>
+                    <CheckCircle2 className="w-3 h-3" />
+                    Connected! Version: {verificationResult.version}
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-3 h-3" />
+                    {verificationResult.error}
+                  </>
+                )}
+              </div>
+            )}
           </div>
           <div className="grid gap-2">
             <Label>Theme Color</Label>

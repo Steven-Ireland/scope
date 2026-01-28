@@ -14,3 +14,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  elasticsearch7:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    container_name: scope-elasticsearch-7
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9201:9200"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

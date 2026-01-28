@@ -1,13 +1,27 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
-const { Client } = require('@elastic/elasticsearch');
+const { Client: Client8 } = require('@elastic/elasticsearch-8');
+const { Client: Client7 } = require('@elastic/elasticsearch-7');
+const { Client: Client9 } = require('@elastic/elasticsearch-9');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const getClient = (req) => {
+// Cache for clients and their versions
+const clientCache = new Map();
+
+const normalizeResponse = (response) => {
+  // ES7 client returns { body, statusCode, headers, warnings }
+  // ES8 client returns the body directly
+  if (response && typeof response === 'object' && response.body !== undefined && (response.statusCode !== undefined || response.headers !== undefined)) {
+    return response.body;
+  }
+  return response;
+};
+
+const getClientConfig = (req) => {
   const url = req.headers['x-scope-url'] || process.env.ELASTICSEARCH_URL || 'http://localhost:9200';
   const username = req.headers['x-scope-username'];
   const password = req.headers['x-scope-password'];
@@ -29,7 +43,78 @@ const getClient = (req) => {
     config.tls.key = fs.readFileSync(keyPath);
   }
 
-  return new Client(config);
+  return { config, url };
+};
+
+const getVersionedClient = async (req) => {
+  const { config, url } = getClientConfig(req);
+  
+  if (clientCache.has(url)) {
+    return clientCache.get(url).client;
+  }
+
+  // Temporary client to detect version
+  // We use Client8 as a baseline for detection
+  const tempClient = new Client8(config);
+  try {
+    const result = await tempClient.info();
+    const info = normalizeResponse(result);
+    const versionNum = info.version.number;
+    const majorVersion = parseInt(versionNum.split('.')[0]);
+    
+    let client;
+    if (majorVersion === 7) {
+      client = new Client7(config);
+    } else if (majorVersion === 9) {
+      client = new Client9(config);
+    } else {
+      client = new Client8(config);
+    }
+
+    clientCache.set(url, { client, version: versionNum, majorVersion });
+    return client;
+  } catch (error) {
+    console.error('Error detecting ES version:', error);
+    // Fallback to Client8 if detection fails
+    return tempClient;
+  }
+};
+
+// Verify server endpoint
+app.get('/api/verify-server', async (req, res) => {
+  const { config, url } = getClientConfig(req);
+  const tempClient = new Client8(config);
+  try {
+    const result = await tempClient.info();
+    const info = normalizeResponse(result);
+    const versionNum = info.version.number;
+    const majorVersion = parseInt(versionNum.split('.')[0]);
+    
+    // Refresh cache
+    let client;
+    if (majorVersion === 7) {
+      client = new Client7(config);
+    } else if (majorVersion === 9) {
+      client = new Client9(config);
+    } else {
+      client = new Client8(config);
+    }
+    clientCache.set(url, { client, version: versionNum, majorVersion });
+
+    res.json({
+      success: true,
+      version: versionNum,
+      majorVersion,
+      clusterName: info.cluster_name,
+      name: info.name
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+const getClient = async (req) => {
+  return await getVersionedClient(req);
 };
 
 // Search endpoint
@@ -41,7 +126,7 @@ app.post('/api/search', async (req, res) => {
       return res.status(400).json({ error: 'Index is required' });
     }
 
-    const esClient = getClient(req);
+    const esClient = await getClient(req);
 
     const must = [];
     if (from || to) {
@@ -78,13 +163,13 @@ app.post('/api/search', async (req, res) => {
       };
     }
 
-    const result = await esClient.search({
+    const response = await esClient.search({
       index,
       from: offset,
       size,
       body,
     });
-    res.json(result);
+    res.json(normalizeResponse(response));
   } catch (error) {
     console.error('Error performing search:', error);
     res.status(500).json({ error: error.message });
@@ -94,8 +179,15 @@ app.post('/api/search', async (req, res) => {
 // Get indices endpoint
 app.get('/api/indices', async (req, res) => {
   try {
-    const esClient = getClient(req);
-    const indices = await esClient.cat.indices({ format: 'json' });
+    const esClient = await getClient(req);
+    const result = await esClient.cat.indices({ format: 'json' });
+    const indices = normalizeResponse(result);
+    
+    if (!Array.isArray(indices)) {
+      console.error('Expected array of indices, got:', typeof indices, indices);
+      return res.json([]);
+    }
+    
     res.json(indices.filter(index => !index.index?.startsWith('.')));
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -106,8 +198,9 @@ app.get('/api/indices', async (req, res) => {
 app.get('/api/fields', async (req, res) => {
   try {
     const { index } = req.query;
-    const esClient = getClient(req);
-    const response = await esClient.indices.getMapping({ index });
+    const esClient = await getClient(req);
+    const result = await esClient.indices.getMapping({ index });
+    const response = normalizeResponse(result);
     const allFields = [];
     
     const getFieldsRecursive = (properties, prefix = '') => {
@@ -139,7 +232,7 @@ app.get('/api/fields', async (req, res) => {
 app.get('/api/values', async (req, res) => {
   try {
     const { index, field, query = '', type = '' } = req.query;
-    const esClient = getClient(req);
+    const esClient = await getClient(req);
     const isNumeric = ['integer', 'long', 'float', 'double', 'short', 'byte', 'half_float', 'scaled_float'].includes(type);
 
     let include = undefined;
@@ -161,7 +254,8 @@ app.get('/api/values', async (req, res) => {
       }
     };
 
-    const response = await esClient.search({ index, body });
+    const result = await esClient.search({ index, body });
+    const response = normalizeResponse(result);
     const topValues = response.aggregations.top_values;
     const buckets = topValues.buckets || [];
     let values = buckets.map((b) => (b.key_as_string || b.key));

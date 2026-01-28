@@ -2,15 +2,16 @@ import { Client } from '@elastic/elasticsearch';
 import { faker } from '@faker-js/faker';
 import { subMinutes, subHours, subDays } from 'date-fns';
 
-const client = new Client({
-  node: 'http://localhost:9200',
-});
+const NODES = [
+  'http://localhost:9200',
+  'http://localhost:9201'
+];
 
 const LOGS_INDEX = 'logs-events';
 const METRICS_INDEX = 'metrics-data';
 const LARGE_EVENTS_INDEX = 'large-events';
 
-async function seedLargeEvents() {
+async function seedLargeEvents(client: Client) {
   if (await client.indices.exists({ index: LARGE_EVENTS_INDEX })) {
     console.log(`Deleting existing index: ${LARGE_EVENTS_INDEX}`);
     await client.indices.delete({ index: LARGE_EVENTS_INDEX });
@@ -106,7 +107,7 @@ async function seedLargeEvents() {
   }
 }
 
-async function seedLogs() {
+async function seedLogs(client: Client) {
   if (await client.indices.exists({ index: LOGS_INDEX })) {
     console.log(`Deleting existing index: ${LOGS_INDEX}`);
     await client.indices.delete({ index: LOGS_INDEX });
@@ -160,7 +161,7 @@ async function seedLogs() {
   }
 }
 
-async function seedMetrics() {
+async function seedMetrics(client: Client) {
   if (await client.indices.exists({ index: METRICS_INDEX })) {
     console.log(`Deleting existing index: ${METRICS_INDEX}`);
     await client.indices.delete({ index: METRICS_INDEX });
@@ -216,23 +217,20 @@ async function seedMetrics() {
 }
 
 async function seed() {
-  console.log('Checking connection to Elasticsearch...');
-  let connected = false;
-  let attempts = 0;
-  while (!connected && attempts < 30) {
+  for (const node of NODES) {
+    console.log(`\n--- Seeding node: ${node} ---`);
+    const client = new Client({ node });
+
     try {
       await client.info();
-      connected = true;
+      await seedLogs(client);
+      await seedMetrics(client);
+      await seedLargeEvents(client);
+      console.log(`Seeding complete for ${node}!`);
     } catch (error) {
-      attempts++;
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.error(`Could not seed node ${node}: ${error.message}`);
     }
   }
-
-  await seedLogs();
-  await seedMetrics();
-  await seedLargeEvents();
-  console.log('Seeding complete!');
 }
 
 seed().catch(console.error);

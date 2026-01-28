@@ -16,6 +16,7 @@
     "preview": "vite preview",
     "lint": "eslint",
     "seed": "tsx scripts/seed.ts",
+    "release": "tsx scripts/release.ts",
     "electron-dev": "concurrently \"vite\" \"electron .\"",
     "electron-build": "npm run build && electron-builder --win --linux"
   },
@@ -66,6 +67,9 @@
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.19.1",
+    "@elastic/elasticsearch-7": "npm:@elastic/elasticsearch@^7.17.14",
+    "@elastic/elasticsearch-8": "npm:@elastic/elasticsearch@^8.19.1",
+    "@elastic/elasticsearch-9": "npm:@elastic/elasticsearch@^9.2.1",
     "@radix-ui/react-context-menu": "^2.2.16",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",

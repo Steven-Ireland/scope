@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
+import { useServer } from '@/context/server-context';
 
 interface Field {
   name: string;
@@ -48,19 +49,22 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const lastRequestRef = React.useRef<number>(0);
+  const { activeServer } = useServer();
 
   React.useEffect(() => {
-    if (!index) return;
-    apiClient.getFields(index)
+    if (!index || !activeServer) return;
+    apiClient.getFields(index, activeServer)
       .then(data => {
         if (Array.isArray(data)) {
           setFields(data);
         }
       })
       .catch(err => console.error('Error fetching fields:', err));
-  }, [index]);
+  }, [index, activeServer]);
 
   const updateSuggestions = React.useCallback(async (text: string, cursorPosition: number) => {
+    if (!activeServer) return;
+    
     const requestId = ++lastRequestRef.current;
     
     const textBeforeCursor = text.slice(0, cursorPosition);
@@ -87,7 +91,7 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
           field: fieldName, 
           query: valuePrefix, 
           type: fieldType || '' 
-        });
+        }, activeServer);
         
         if (requestId !== lastRequestRef.current) return;
 
@@ -129,7 +133,7 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
         setIsOpen(false);
       }
     }
-  }, [index, fields]);
+  }, [index, fields, activeServer]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -229,8 +233,6 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
           if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
             handleCursorMove(e);
           }
-          // Don't trigger suggestion update on Up/Down if the menu is open, 
-          // as handleKeyDown already handled the selection.
           if (['ArrowUp', 'ArrowDown'].includes(e.key) && !isOpen) {
             handleCursorMove(e);
           }

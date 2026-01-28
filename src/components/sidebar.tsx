@@ -1,54 +1,106 @@
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { Search, Settings, Database } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useServer } from '@/context/server-context';
+import { ServerDialog } from './server-dialog';
+import { ServerConfig } from '@/types/server';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { SERVER_COLORS } from '@/lib/constants';
 
 export function Sidebar() {
+  const { servers, activeServer, setActiveServerId, addServer, removeServer } = useServer();
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const location = useLocation();
-  const pathname = location.pathname;
-  const [searchParams] = useSearchParams();
-  const index = searchParams.get('index') || 'logs-events';
+  const navigate = useNavigate();
 
-  const navItems = [
-    {
-      label: 'Search',
-      href: `/search?index=${index}`,
-      icon: Search,
-      active: pathname === `/search` || pathname === '/',
-    },
-    {
-      label: 'Index Settings',
-      href: `/settings/index?index=${index}`,
-      icon: Database,
-      active: pathname.startsWith('/settings/index'),
-    },
-    {
-      label: 'App Settings',
-      href: '/settings/app',
-      icon: Settings,
-      active: pathname === '/settings/app',
-    },
-  ];
+  const handleAdd = (config: Omit<ServerConfig, 'id'>) => {
+    addServer(config);
+  };
+
+  const handleServerClick = (id: string) => {
+    setActiveServerId(id);
+    if (!location.pathname.startsWith('/search')) {
+        navigate('/search');
+    }
+  };
 
   return (
-    <div className="flex flex-col w-16 border-r bg-card h-screen items-center py-4 shrink-0">
-      <nav className="flex flex-col gap-4">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            to={item.href}
-            title={item.label}
-            className={cn(
-              "flex items-center justify-center w-10 h-10 rounded-md transition-colors",
-              item.active 
-                ? "bg-primary text-primary-foreground" 
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            <item.icon className="w-5 h-5" />
-            <span className="sr-only">{item.label}</span>
-          </Link>
-        ))}
-      </nav>
+    <div className="flex flex-col w-14 border-r bg-card h-screen items-center py-4 shrink-0 gap-4">
+      <div className="flex flex-col gap-3 w-full items-center overflow-y-auto flex-1 no-scrollbar">
+        {servers.map((server) => {
+          const colorConfig = SERVER_COLORS.find(c => c.bg === server.color) || SERVER_COLORS[0];
+          return (
+            <ContextMenu key={server.id}>
+              <ContextMenuTrigger>
+                <button
+                  onClick={() => handleServerClick(server.id)}
+                  className={cn(
+                    "relative flex items-center justify-center w-10 h-10 rounded-[20px] transition-all duration-200 group hover:rounded-[12px]",
+                    activeServer?.id === server.id
+                      ? cn(colorConfig.bg, "text-primary-foreground rounded-[12px]")
+                      : cn("bg-muted text-muted-foreground hover:text-primary-foreground", colorConfig.hover)
+                  )}
+                  title={server.name}
+                >
+                  <span className="text-sm font-semibold uppercase">
+                    {server.name.substring(0, 1)}
+                  </span>
+                </button>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onClick={() => navigate(`/settings/server/${server.id}`)}>
+                  Server Settings
+                </ContextMenuItem>
+                <ContextMenuItem 
+                  variant="destructive"
+                  onClick={() => {
+                      if (confirm(`Are you sure you want to remove ${server.name}?`)) {
+                          removeServer(server.id);
+                      }
+                  }}
+                >
+                  Remove Server
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          );
+        })}
+
+        <button
+          onClick={() => setIsAddOpen(true)}
+          className="flex items-center justify-center w-10 h-10 rounded-[20px] bg-muted text-green-500 transition-all duration-200 hover:rounded-[12px] hover:bg-green-500 hover:text-white"
+          title="Add Server"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-4 mt-auto items-center">
+        <Link
+          to="/settings/app"
+          title="App Settings"
+          className={cn(
+            "flex items-center justify-center w-10 h-10 rounded-md transition-colors",
+            location.pathname === '/settings/app' 
+              ? "bg-primary text-primary-foreground" 
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          <Settings className="w-5 h-5" />
+        </Link>
+      </div>
+
+      <ServerDialog
+        open={isAddOpen}
+        onOpenChange={setIsAddOpen}
+        onSave={handleAdd}
+      />
     </div>
   );
 }

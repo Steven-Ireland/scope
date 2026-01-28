@@ -23,6 +23,7 @@ import { addDays, parseISO } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { Separator } from '@/components/ui/separator';
 import { apiClient } from '@/lib/api-client';
+import { useServer } from '@/context/server-context';
 import { DateHistogram } from '@/components/date-histogram';
 
 interface LogEntry {
@@ -40,6 +41,7 @@ function SearchContent() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const pathname = location.pathname;
+  const { activeServer } = useServer();
   
   const indexFromQuery = searchParams.get('index') || '';
   const qFromQuery = searchParams.get('q') || '';
@@ -106,7 +108,7 @@ function SearchContent() {
   }, [pathname, navigate, location.search, sortField, sortOrder]);
 
   const performSearch = useCallback(async (shouldUpdateUrl = false, dateRangeOverride?: DateRange) => {
-    if (!indexFromQuery) return;
+    if (!indexFromQuery || !activeServer) return;
 
     setLoading(true);
     
@@ -125,7 +127,7 @@ function SearchContent() {
         sortField,
         sortOrder,
         includeHistogram: true,
-      });
+      }, activeServer);
       setLogs(data.hits?.hits || []);
 
       if (data.aggregations?.histogram?.buckets) {
@@ -139,18 +141,30 @@ function SearchContent() {
       }
     } catch (error) {
       console.error('Search failed:', error);
+      setLogs([]);
     } finally {
       setLoading(false);
     }
-  }, [indexFromQuery, searchQuery, date, updateUrl, sortField, sortOrder]);
+  }, [indexFromQuery, searchQuery, date, updateUrl, sortField, sortOrder, activeServer]);
 
   useEffect(() => {
-    apiClient.getIndices()
+    if (!activeServer) return;
+    apiClient.getIndices(activeServer)
       .then((data) => {
         setIndices(data);
+        // Automatically select the first index if none is selected or if the current one doesn't exist on this server
+        if (data.length > 0) {
+          const indexExists = data.some((idx: { index: string }) => idx.index === indexFromQuery);
+          if (!indexFromQuery || !indexExists) {
+            updateUrl(data[0].index, searchQuery, date);
+          }
+        }
       })
-      .catch((err) => console.error('Error fetching indices:', err));
-  }, []);
+      .catch((err) => {
+        console.error('Error fetching indices:', err);
+        setIndices([]);
+      });
+  }, [activeServer, indexFromQuery, updateUrl, searchQuery, date]);
 
   useEffect(() => {
     const s = searchParams.get('sort') || '@timestamp';
@@ -160,9 +174,9 @@ function SearchContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (indexFromQuery) {
+    if (indexFromQuery && activeServer) {
       setFieldsLoading(true);
-      apiClient.getFields(indexFromQuery)
+      apiClient.getFields(indexFromQuery, activeServer)
         .then((data) => {
           setFields(data);
           const exists = data.some((f: { name: string }) => f.name === sortField);
@@ -174,7 +188,7 @@ function SearchContent() {
         .catch((err) => console.error('Error fetching fields:', err))
         .finally(() => setFieldsLoading(false));
     }
-  }, [indexFromQuery]);
+  }, [indexFromQuery, activeServer, sortField]);
 
   const isSortable = (field: string) => {
     const fieldDef = fields.find(f => f.name === field);

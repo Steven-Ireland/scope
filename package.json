@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "description": "Minimalist Elasticsearch explorer",
-  "author": "Scope Team <contact@example.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Steven-Ireland/scope.git"
+  },
+  "author": "Steven ireland <contact@stevenire.land>",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"vite\"",
@@ -21,6 +25,13 @@
     "directories": {
       "output": "dist-electron"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Steven-Ireland",
+        "repo": "scope"
+      }
+    ],
     "files": [
       "electron/**/*",
       "dist/**/*",
@@ -31,6 +42,13 @@
       "target": [
         "AppImage",
         "deb"
+      ]
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
       ]
     },
     "win": {

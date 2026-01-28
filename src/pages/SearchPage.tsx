@@ -24,6 +24,7 @@ import { DateRange } from 'react-day-picker';
 import { Separator } from '@/components/ui/separator';
 import { apiClient } from '@/lib/api-client';
 import { useServer } from '@/context/server-context';
+import { DateHistogram } from '@/components/date-histogram';
 
 interface LogEntry {
   _id: string;
@@ -49,8 +50,10 @@ function SearchContent() {
 
   const [indices, setIndices] = useState<{ index: string }[]>([]);
   const [fields, setFields] = useState<{ name: string, type: string }[]>([]);
+  const [fieldsLoading, setFieldsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState(qFromQuery);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [histogramData, setHistogramData] = useState<Array<{ timestamp: number; count: number }>>([]);
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [sortField, setSortField] = useState<string>(searchParams.get('sort') || '@timestamp');
@@ -76,17 +79,12 @@ function SearchContent() {
   // Track the last set of params that we actually searched for
   const lastSearchedRef = useRef<string>('');
 
-  const updateUrl = useCallback((index: string, query: string, range: DateRange | undefined, sField?: string, sOrder?: string) => {
+  const updateUrl = useCallback((index: string, query: string, range: DateRange | undefined, skipEffect = false, sField?: string, sOrder?: string) => {
     const newParams = new URLSearchParams();
     
     if (index) newParams.set('index', index);
     if (query) newParams.set('q', query);
     
-    const defaultFrom = addDays(new Date(), -1);
-    
-    // Simple check for defaults
-    const isDefaultFrom = false; // Simplified for Vite conversion
-
     if (range?.from) newParams.set('from', range.from.toISOString());
     if (range?.to) newParams.set('to', range.to.toISOString());
 
@@ -99,33 +97,48 @@ function SearchContent() {
     const qs = newParams.toString();
     const url = qs ? `${pathname}?${qs}` : pathname;
     
-    lastSearchedRef.current = qs;
+    if (skipEffect) {
+        lastSearchedRef.current = qs;
+    }
 
     const currentUrl = pathname + (location.search || '');
     if (url !== currentUrl) {
-        navigate(url, { replace: true });
+        navigate(url, { replace: false });
     }
   }, [pathname, navigate, location.search, sortField, sortOrder]);
 
-  const performSearch = useCallback(async (shouldUpdateUrl = false) => {
+  const performSearch = useCallback(async (shouldUpdateUrl = false, dateRangeOverride?: DateRange) => {
     if (!indexFromQuery || !activeServer) return;
 
     setLoading(true);
     
+    const activeDate = dateRangeOverride || date;
+
     if (shouldUpdateUrl) {
-      updateUrl(indexFromQuery, searchQuery, date);
+      updateUrl(indexFromQuery, searchQuery, activeDate, true);
     }
     
     try {
       const data = await apiClient.search({
         index: indexFromQuery,
         query: searchQuery,
-        from: date?.from?.toISOString(),
-        to: date?.to?.toISOString(),
+        from: activeDate?.from?.toISOString(),
+        to: activeDate?.to?.toISOString(),
         sortField,
         sortOrder,
+        includeHistogram: true,
       }, activeServer);
       setLogs(data.hits?.hits || []);
+
+      if (data.aggregations?.histogram?.buckets) {
+        const buckets = data.aggregations.histogram.buckets.map((b: any) => ({
+            timestamp: b.key,
+            count: b.doc_count
+        }));
+        setHistogramData(buckets);
+      } else {
+        setHistogramData([]);
+      }
     } catch (error) {
       console.error('Search failed:', error);
       setLogs([]);
@@ -162,6 +175,7 @@ function SearchContent() {
 
   useEffect(() => {
     if (indexFromQuery && activeServer) {
+      setFieldsLoading(true);
       apiClient.getFields(indexFromQuery, activeServer)
         .then((data) => {
           setFields(data);
@@ -171,12 +185,10 @@ function SearchContent() {
             setSortOrder('desc');
           }
         })
-        .catch((err) => {
-            console.error('Error fetching fields:', err);
-            setFields([]);
-        });
+        .catch((err) => console.error('Error fetching fields:', err))
+        .finally(() => setFieldsLoading(false));
     }
-  }, [indexFromQuery, activeServer]);
+  }, [indexFromQuery, activeServer, sortField]);
 
   const isSortable = (field: string) => {
     const fieldDef = fields.find(f => f.name === field);
@@ -190,13 +202,22 @@ function SearchContent() {
         setSearchQuery(searchParams.get('q') || '');
         const newFrom = searchParams.get('from');
         const newTo = searchParams.get('to');
+        
+        let activeDate: DateRange | undefined;
         if (newFrom && newTo) {
-            setDate({ from: parseISO(newFrom), to: parseISO(newTo) });
+            activeDate = { from: parseISO(newFrom), to: parseISO(newTo) };
+        } else {
+            // Fallback to default range
+            activeDate = {
+                from: addDays(new Date(), -1),
+                to: new Date(),
+            };
         }
         
+        setDate(activeDate);
         lastSearchedRef.current = currentQs;
         if (indexFromQuery) {
-            performSearch(false);
+            performSearch(false, activeDate);
         }
     }
   }, [searchParams, indexFromQuery, performSearch]);
@@ -210,7 +231,7 @@ function SearchContent() {
     }
     setSortField(field);
     setSortOrder(newOrder);
-    updateUrl(indexFromQuery, searchQuery, date, field, newOrder);
+    updateUrl(indexFromQuery, searchQuery, date, true, field, newOrder);
   };
 
   const getColumns = () => {
@@ -266,102 +287,139 @@ function SearchContent() {
         <Button className="w-full md:w-auto" onClick={() => performSearch(true)} disabled={loading}>Search</Button>
       </header>
 
-      <main className="flex-1 flex min-h-0 overflow-hidden relative">
-        <div className="flex-1 overflow-auto min-w-0">
-          <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
-              <TableRow>
-                {columns.map(col => {
-                  const sortable = isSortable(col);
-                  return (
-                    <TableHead 
-                      key={col} 
-                      className={`${col === '@timestamp' ? 'w-48' : ''} ${sortable ? 'cursor-pointer hover:bg-muted/50 transition-colors' : 'cursor-default'}`}
-                      onClick={() => sortable && handleSort(col)}
-                    >
-                      <div className="flex items-center gap-1 group">
-                        {col}
-                        {sortable && (
-                          <span className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
-                            {sortField === col ? (
-                              sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                            ) : (
-                              <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100" />
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    {loading ? 'Searching...' : (indexFromQuery ? 'No results found.' : 'Please select an index to start.')}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                logs.map((log) => (
-                  <TableRow 
-                    key={log._id} 
-                    className={`cursor-pointer hover:bg-muted/50 ${selectedLog?._id === log._id ? 'bg-muted' : ''}`}
-                    onClick={() => setSelectedLog(log)}
-                  >
-                    {columns.map(col => (
-                      <TableCell key={col} className={col === '@timestamp' ? 'font-mono text-xs' : 'max-w-lg truncate'}>
-                        {col === 'level' ? (
-                          <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                              log._source.level === 'error' ? 'bg-red-500/10 text-red-500 ring-red-500/20' :
-                              log._source.level === 'warn' ? 'bg-yellow-500/10 text-yellow-500 ring-yellow-500/20' :
-                              'bg-gray-500/10 text-gray-400 ring-gray-500/20'
-                          }`}>
-                              {log._source.level}
-                          </span>
-                        ) : (
-                          typeof log._source[col] === 'object' 
-                            ? JSON.stringify(log._source[col]) 
-                            : String(log._source[col] ?? '')
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {selectedLog && (
-          <div className="absolute inset-y-0 right-0 w-full md:w-1/2 lg:w-1/3 border-l bg-card shadow-2xl z-30 flex flex-col animate-in slide-in-from-right duration-200">
-            <div className="p-4 border-b flex items-center justify-between shrink-0">
-              <h2 className="font-semibold text-lg">Document Details</h2>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedLog(null)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex-1 overflow-auto p-4 space-y-4">
-              <div className="space-y-1">
-                <span className="text-xs font-medium text-muted-foreground uppercase">ID</span>
-                <p className="font-mono text-sm break-all">{selectedLog._id}</p>
-              </div>
-              <Separator />
-              {Object.entries(selectedLog._source).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => (
-                <div key={key} className="space-y-1">
-                  <span className="text-xs font-medium text-muted-foreground uppercase">{key}</span>
-                  <div className="bg-muted/30 rounded p-2 overflow-auto">
-                    <pre className="text-sm font-mono whitespace-pre-wrap break-all">
-                      {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                    </pre>
-                  </div>
-                </div>
-              ))}
-            </div>
+      {!indexFromQuery ? (
+        <main className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-muted/5">
+          <div className="max-w-md space-y-2">
+            <h2 className="text-xl font-semibold">Ready to explore?</h2>
+            <p className="text-muted-foreground text-sm">
+              Select an index from the dropdown above to start searching through your logs and events.
+            </p>
           </div>
-        )}
-      </main>
+        </main>
+      ) : fieldsLoading ? (
+        <main className="flex-1 flex items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </main>
+      ) : (
+        <>
+          {(histogramData.length > 0 || loading) && (
+            <div className="px-2 bg-card border-b shrink-0 h-16 flex flex-col justify-center">
+                <div className={`w-full transition-opacity duration-200 ${loading && histogramData.length > 0 ? 'opacity-40' : 'opacity-100'}`}>
+                    {histogramData.length > 0 ? (
+                        <DateHistogram 
+                            data={histogramData} 
+                            onRangeSelect={(from, to) => {
+                                const newRange = { from, to };
+                                updateUrl(indexFromQuery, searchQuery, newRange);
+                            }} 
+                        />
+                    ) : (
+                        loading && (
+                            <div className="h-10 w-full bg-muted/20 animate-pulse rounded-sm" />
+                        )
+                    )}
+                </div>
+            </div>
+          )}
+
+          <main className="flex-1 flex min-h-0 overflow-hidden relative">
+            <div className="flex-1 overflow-auto min-w-0">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableRow>
+                    {columns.map(col => {
+                      const sortable = isSortable(col);
+                      return (
+                        <TableHead 
+                          key={col} 
+                          className={`${col === '@timestamp' ? 'w-48' : ''} ${sortable ? 'cursor-pointer hover:bg-muted/50 transition-colors' : 'cursor-default'}`}
+                          onClick={() => sortable && handleSort(col)}
+                        >
+                          <div className="flex items-center gap-1 group">
+                            {col}
+                            {sortable && (
+                              <span className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
+                                {sortField === col ? (
+                                  sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                                ) : (
+                                  <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </TableHead>
+                      );
+                    })}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground italic">
+                        {!loading && 'No results found.'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    logs.map((log) => (
+                      <TableRow 
+                        key={log._id} 
+                        className={`cursor-pointer hover:bg-muted/50 ${selectedLog?._id === log._id ? 'bg-muted' : ''}`}
+                        onClick={() => setSelectedLog(log)}
+                      >
+                        {columns.map(col => (
+                          <TableCell key={col} className={col === '@timestamp' ? 'font-mono text-xs' : 'max-w-lg truncate'}>
+                            {col === 'level' ? (
+                              <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                                  log._source.level === 'error' ? 'bg-red-500/10 text-red-500 ring-red-500/20' :
+                                  log._source.level === 'warn' ? 'bg-yellow-500/10 text-yellow-500 ring-yellow-500/20' :
+                                  'bg-gray-500/10 text-gray-400 ring-gray-500/20'
+                              }`}>
+                                  {log._source.level}
+                              </span>
+                            ) : (
+                              typeof log._source[col] === 'object' 
+                                ? JSON.stringify(log._source[col]) 
+                                : String(log._source[col] ?? '')
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {selectedLog && (
+              <div className="absolute inset-y-0 right-0 w-full md:w-1/2 lg:w-1/3 border-l bg-card shadow-2xl z-30 flex flex-col animate-in slide-in-from-right duration-200">
+                <div className="p-4 border-b flex items-center justify-between shrink-0">
+                  <h2 className="font-semibold text-lg">Document Details</h2>
+                  <Button variant="ghost" size="icon" onClick={() => setSelectedLog(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-auto p-4 space-y-4">
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase">ID</span>
+                    <p className="font-mono text-sm break-all">{selectedLog._id}</p>
+                  </div>
+                  <Separator />
+                  {Object.entries(selectedLog._source).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => (
+                    <div key={key} className="space-y-1">
+                      <span className="text-xs font-medium text-muted-foreground uppercase">{key}</span>
+                      <div className="bg-muted/30 rounded p-2 overflow-auto">
+                        <pre className="text-sm font-mono whitespace-pre-wrap break-all">
+                          {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                        </pre>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </main>
+        </>
+      )}
     </div>
   );
 }

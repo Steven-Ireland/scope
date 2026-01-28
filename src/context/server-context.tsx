@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { ServerConfig } from '@/types/server';
 import { SERVER_COLORS } from '@/lib/constants';
 
@@ -83,7 +83,10 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [activeServerId]);
 
-  const activeServer = servers.find((s) => s.id === activeServerId) || servers[0] || null;
+  const activeServer = useMemo(() => 
+    servers.find((s) => s.id === activeServerId) || servers[0] || null,
+    [servers, activeServerId]
+  );
 
   const addServer = (server: Omit<ServerConfig, 'id'>) => {
     const newServer = { ...server, id: crypto.randomUUID() };
@@ -103,21 +106,21 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const contextValue = useMemo(() => ({
+    servers,
+    activeServer,
+    setActiveServerId,
+    addServer,
+    updateServer,
+    removeServer,
+  }), [servers, activeServer]);
+
   if (!isLoaded) {
     return null; // Or a loading spinner
   }
 
   return (
-    <ServerContext.Provider
-      value={{
-        servers,
-        activeServer,
-        setActiveServerId,
-        addServer,
-        updateServer,
-        removeServer,
-      }}
-    >
+    <ServerContext.Provider value={contextValue}>
       {children}
     </ServerContext.Provider>
   );

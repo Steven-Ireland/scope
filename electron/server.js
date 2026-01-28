@@ -6,9 +6,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9200',
-});
+const getClient = (req) => {
+  const url = req.headers['x-scope-url'] || process.env.ELASTICSEARCH_URL || 'http://localhost:9200';
+  const username = req.headers['x-scope-username'];
+  const password = req.headers['x-scope-password'];
+
+  const config = {
+    node: url,
+    auth: (username && password) ? { username, password } : undefined,
+    tls: { rejectUnauthorized: false } 
+  };
+
+  return new Client(config);
+};
 
 // Search endpoint
 app.post('/api/search', async (req, res) => {
@@ -18,6 +28,8 @@ app.post('/api/search', async (req, res) => {
     if (!index) {
       return res.status(400).json({ error: 'Index is required' });
     }
+
+    const esClient = getClient(req);
 
     const must = [];
     if (from || to) {
@@ -57,6 +69,7 @@ app.post('/api/search', async (req, res) => {
 // Get indices endpoint
 app.get('/api/indices', async (req, res) => {
   try {
+    const esClient = getClient(req);
     const indices = await esClient.cat.indices({ format: 'json' });
     res.json(indices.filter(index => !index.index?.startsWith('.')));
   } catch (error) {
@@ -68,6 +81,7 @@ app.get('/api/indices', async (req, res) => {
 app.get('/api/fields', async (req, res) => {
   try {
     const { index } = req.query;
+    const esClient = getClient(req);
     const response = await esClient.indices.getMapping({ index });
     const allFields = [];
     
@@ -100,6 +114,7 @@ app.get('/api/fields', async (req, res) => {
 app.get('/api/values', async (req, res) => {
   try {
     const { index, field, query = '', type = '' } = req.query;
+    const esClient = getClient(req);
     const isNumeric = ['integer', 'long', 'float', 'double', 'short', 'byte', 'half_float', 'scaled_float'].includes(type);
 
     let include = undefined;

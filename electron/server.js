@@ -13,7 +13,7 @@ const esClient = new Client({
 // Search endpoint
 app.post('/api/search', async (req, res) => {
   try {
-    const { index, query, from, to, offset = 0, size = 50, sortField, sortOrder } = req.body;
+    const { index, query, from, to, offset = 0, size = 50, sortField, sortOrder, includeHistogram } = req.body;
     
     if (!index) {
       return res.status(400).json({ error: 'Index is required' });
@@ -34,18 +34,31 @@ app.post('/api/search', async (req, res) => {
       sort.push({ '@timestamp': { order: 'desc' } });
     }
 
+    const body = {
+      query: {
+        bool: {
+          must: must.length > 0 ? must : [{ match_all: {} }],
+        },
+      },
+      sort,
+    };
+
+    if (includeHistogram) {
+      body.aggs = {
+        histogram: {
+          auto_date_histogram: {
+            field: '@timestamp',
+            buckets: 60,
+          },
+        },
+      };
+    }
+
     const result = await esClient.search({
       index,
       from: offset,
       size,
-      body: {
-        query: {
-          bool: {
-            must: must.length > 0 ? must : [{ match_all: {} }],
-          },
-        },
-        sort,
-      },
+      body,
     });
     res.json(result);
   } catch (error) {

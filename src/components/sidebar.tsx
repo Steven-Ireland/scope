@@ -1,13 +1,11 @@
-'use client';
-
-import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Search, Settings, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Sidebar() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const location = useLocation();
+  const pathname = location.pathname;
+  const [searchParams] = useSearchParams();
   const index = searchParams.get('index') || 'logs-events';
 
   const navItems = [
@@ -37,7 +35,7 @@ export function Sidebar() {
         {navItems.map((item) => (
           <Link
             key={item.href}
-            href={item.href}
+            to={item.href}
             title={item.label}
             className={cn(
               "flex items-center justify-center w-10 h-10 rounded-md transition-colors",

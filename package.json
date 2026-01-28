@@ -6,23 +6,24 @@
   "author": "Scope Team <contact@example.com>",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "concurrently \"npm run server\" \"vite\"",
+    "server": "node electron/server.js",
+    "build": "vite build",
+    "preview": "vite preview",
     "lint": "eslint",
     "seed": "tsx scripts/seed.ts",
-    "electron-dev": "NEXT_PUBLIC_IS_ELECTRON=true concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron-build": "NEXT_PUBLIC_IS_ELECTRON=true npm run build && electron-builder"
+    "electron-dev": "concurrently \"vite\" \"electron .\"",
+    "electron-build": "npm run build && electron-builder --win --linux"
   },
   "build": {
     "appId": "com.scope.app",
     "productName": "Scope",
     "directories": {
-      "output": "dist"
+      "output": "dist-electron"
     },
     "files": [
       "electron/**/*",
-      "out/**/*",
+      "dist/**/*",
       "package.json",
       "node_modules/**/*"
     ],
@@ -30,6 +31,13 @@
       "target": [
         "AppImage",
         "deb"
+      ]
+    },
+    "win": {
+      "icon": "public/favicon.ico",
+      "target": [
+        "nsis",
+        "portable"
       ]
     }
   },
@@ -41,30 +49,37 @@
     "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "electron-serve": "^1.1.0",
+    "express": "^4.21.2",
     "lucide-react": "^0.563.0",
-    "next": "16.1.5",
     "react": "19.2.3",
     "react-day-picker": "^9.13.0",
     "react-dom": "19.2.3",
+    "react-router-dom": "^7.1.3",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.2.0",
     "@tailwindcss/postcss": "^4",
+    "@tailwindcss/vite": "^4",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.2.1",
     "electron": "^40.0.0",
-    "electron-builder": "^26.4.0",
+    "electron-builder": "^26.6.0",
     "eslint": "^9",
-    "eslint-config-next": "16.1.5",
+    "postcss": "^8.4.49",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
+    "vite": "^6.0.7",
     "wait-on": "^9.0.3"
   }
 }

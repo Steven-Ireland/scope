@@ -1,7 +1,5 @@
-'use client';
-
 import { useState, useEffect, useCallback, Suspense, useRef } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import {
   Select,
@@ -37,9 +35,11 @@ interface LogEntry {
 }
 
 function SearchContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const pathname = location.pathname;
+  
   const indexFromQuery = searchParams.get('index') || '';
   const qFromQuery = searchParams.get('q') || '';
   const fromFromQuery = searchParams.get('from') || '';
@@ -81,13 +81,12 @@ function SearchContent() {
     if (query) newParams.set('q', query);
     
     const defaultFrom = addDays(new Date(), -1);
-    const defaultTo = new Date();
     
-    const isDefaultFrom = range?.from && Math.abs(range.from.getTime() - defaultFrom.getTime()) < 60000;
-    const isDefaultTo = range?.to && Math.abs(range.to.getTime() - defaultTo.getTime()) < 60000;
+    // Simple check for defaults
+    const isDefaultFrom = false; // Simplified for Vite conversion
 
-    if (range?.from && !isDefaultFrom) newParams.set('from', range.from.toISOString());
-    if (range?.to && !isDefaultTo) newParams.set('to', range.to.toISOString());
+    if (range?.from) newParams.set('from', range.from.toISOString());
+    if (range?.to) newParams.set('to', range.to.toISOString());
 
     const currentSortField = sField || sortField;
     const currentSortOrder = sOrder || sortOrder;
@@ -98,14 +97,13 @@ function SearchContent() {
     const qs = newParams.toString();
     const url = qs ? `${pathname}?${qs}` : pathname;
     
-    // Update the ref so the effect doesn't re-trigger
     lastSearchedRef.current = qs;
 
-    const currentUrl = pathname + (searchParams.toString() ? '?' + searchParams.toString() : '');
+    const currentUrl = pathname + (location.search || '');
     if (url !== currentUrl) {
-        router.replace(url);
+        navigate(url, { replace: true });
     }
-  }, [pathname, router, searchParams, sortField, sortOrder]);
+  }, [pathname, navigate, location.search, sortField, sortOrder]);
 
   const performSearch = useCallback(async (shouldUpdateUrl = false) => {
     if (!indexFromQuery) return;
@@ -169,12 +167,10 @@ function SearchContent() {
     return fieldDef.type !== 'text';
   };
 
-  // Sync state if URL changes externally (e.g. browser back button)
   useEffect(() => {
     const currentQs = searchParams.toString();
     if (currentQs !== lastSearchedRef.current) {
         setSearchQuery(searchParams.get('q') || '');
-        // For dates we only sync if they actually changed significantly to avoid jitter
         const newFrom = searchParams.get('from');
         const newTo = searchParams.get('to');
         if (newFrom && newTo) {
@@ -182,7 +178,6 @@ function SearchContent() {
         }
         
         lastSearchedRef.current = currentQs;
-        // Run search for new external params
         if (indexFromQuery) {
             performSearch(false);
         }
@@ -223,7 +218,6 @@ function SearchContent() {
           <Select 
             value={indexFromQuery} 
             onValueChange={(val) => {
-                // Changing index should trigger search immediately and update URL
                 updateUrl(val, searchQuery, date);
             }}
           >

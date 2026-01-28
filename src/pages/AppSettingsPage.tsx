@@ -1,5 +1,3 @@
-'use client';
-
 export default function AppSettingsPage() {
   return (
     <div className="p-8">

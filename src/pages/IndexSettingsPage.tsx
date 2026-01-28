@@ -1,5 +1,3 @@
-'use client';
-
 export default function IndexSettingsPage() {
   return (
     <div className="p-8">

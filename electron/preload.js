@@ -1,8 +1,6 @@
-const { contextBridge, ipcRenderer } = require('electron');
+// Preload script is currently empty as frontend uses Express server over HTTP
+const { contextBridge } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
-  search: (params) => ipcRenderer.invoke('search', params),
-  getIndices: () => ipcRenderer.invoke('get-indices'),
-  getFields: (index) => ipcRenderer.invoke('get-fields', index),
-  getValues: (params) => ipcRenderer.invoke('get-values', params),
+  isElectron: true
 });

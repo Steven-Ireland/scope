@@ -53,58 +53,61 @@ const getVersionedClient = async (req) => {
     return clientCache.get(url).client;
   }
 
-  // Temporary client to detect version
-  // We use Client8 as a baseline for detection
-  const tempClient = new Client8(config);
-  try {
-    const result = await tempClient.info();
-    const info = normalizeResponse(result);
-    const versionNum = info.version.number;
-    const majorVersion = parseInt(versionNum.split('.')[0]);
-    
-    let client;
-    if (majorVersion === 7) {
-      client = new Client7(config);
-    } else if (majorVersion === 9) {
-      client = new Client9(config);
-    } else {
-      client = new Client8(config);
-    }
+  const clientVersions = [
+    { Client: Client7, version: 7 },
+    { Client: Client8, version: 8 },
+    { Client: Client9, version: 9 }
+  ];
 
-    clientCache.set(url, { client, version: versionNum, majorVersion });
-    return client;
-  } catch (error) {
-    console.error('Error detecting ES version:', error);
-    // Fallback to Client8 if detection fails
-    return tempClient;
+  for (const { Client, version: clientMajor } of clientVersions) {
+    try {
+      const tempClient = new Client(config);
+      const info = normalizeResponse(await tempClient.info());
+      const versionNum = info.version.number;
+      const majorVersion = parseInt(versionNum.split('.')[0]);
+      
+      let client;
+      switch (majorVersion) {
+        case 7:
+          client = new Client7(config);
+          break;
+        case 8:
+          client = new Client8(config);
+          break;
+        case 9:
+          client = new Client9(config);
+          break;
+        default:
+          throw new Error(`Unknown client version: ${majorVersion}`);
+      }
+
+      clientCache.set(url, { client, version: versionNum, majorVersion });
+      return client;
+    } catch (error) {
+      console.warn(`ES version detection attempt with Client${clientMajor} failed:`, error.message);
+    }
   }
+
+  throw new Error('Failed to connect to Elasticsearch');
 };
 
 // Verify server endpoint
 app.get('/api/verify-server', async (req, res) => {
-  const { config, url } = getClientConfig(req);
-  const tempClient = new Client8(config);
+  const { url } = getClientConfig(req);
   try {
-    const result = await tempClient.info();
-    const info = normalizeResponse(result);
-    const versionNum = info.version.number;
-    const majorVersion = parseInt(versionNum.split('.')[0]);
+    // Clear cache to force re-detection on verify
+    clientCache.delete(url);
     
-    // Refresh cache
-    let client;
-    if (majorVersion === 7) {
-      client = new Client7(config);
-    } else if (majorVersion === 9) {
-      client = new Client9(config);
-    } else {
-      client = new Client8(config);
-    }
-    clientCache.set(url, { client, version: versionNum, majorVersion });
+    const client = await getVersionedClient(req);
+    const cached = clientCache.get(url);
+    
+    const result = await client.info();
+    const info = normalizeResponse(result);
 
     res.json({
       success: true,
-      version: versionNum,
-      majorVersion,
+      version: cached.version,
+      majorVersion: cached.majorVersion,
       clusterName: info.cluster_name,
       name: info.name
     });

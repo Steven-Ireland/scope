@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, Search, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { SERVER_COLORS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { apiClient } from '@/lib/api-client';
 
 export default function ServerSettingsPage() {
   const { serverId } = useParams();
@@ -24,6 +25,14 @@ export default function ServerSettingsPage() {
   const [certPath, setCertPath] = useState('');
   const [keyPath, setKeyPath] = useState('');
   
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<{
+    success: boolean;
+    version?: string;
+    clusterName?: string;
+    error?: string;
+  } | null>(null);
+
   const isInitialMount = useRef(true);
 
   useEffect(() => {
@@ -63,6 +72,7 @@ export default function ServerSettingsPage() {
           certPath: certPath || undefined,
           keyPath: keyPath || undefined,
         });
+        setVerifyResult(null);
       }, 500); // Debounce for 500ms
 
       return () => clearTimeout(timeoutId);
@@ -82,6 +92,32 @@ export default function ServerSettingsPage() {
     if (confirm(`Are you sure you want to remove ${server.name}?`)) {
       removeServer(server.id);
       navigate('/search');
+    }
+  };
+
+  const handleVerify = async () => {
+    setIsVerifying(true);
+    setVerifyResult(null);
+    try {
+      const result = await apiClient.verifyServer({
+        url,
+        username: username || undefined,
+        password: password || undefined,
+        certPath: certPath || undefined,
+        keyPath: keyPath || undefined,
+      });
+      setVerifyResult({
+        success: true,
+        version: result.version,
+        clusterName: result.clusterName,
+      });
+    } catch (error: any) {
+      setVerifyResult({
+        success: false,
+        error: error.message,
+      });
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -114,10 +150,53 @@ export default function ServerSettingsPage() {
       <main className="flex-1 p-8 max-w-2xl mx-auto w-full space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Connection Details</CardTitle>
-            <CardDescription>Configure how Scope connects to this Elasticsearch cluster. Changes are saved automatically.</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Connection Details</CardTitle>
+                <CardDescription>Configure how Scope connects to this Elasticsearch cluster. Changes are saved automatically.</CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleVerify} 
+                disabled={isVerifying}
+              >
+                {isVerifying ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify Server'
+                )}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {verifyResult && (
+              <div className={cn(
+                "p-4 rounded-md flex items-start gap-3 text-sm",
+                verifyResult.success ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-destructive/10 text-destructive border border-destructive/20"
+              )}>
+                {verifyResult.success ? (
+                  <>
+                    <CheckCircle2 className="h-5 w-5 shrink-0" />
+                    <div>
+                      <p className="font-semibold">Successfully connected!</p>
+                      <p className="opacity-90">Cluster: {verifyResult.clusterName} (v{verifyResult.version})</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-5 w-5 shrink-0" />
+                    <div>
+                      <p className="font-semibold">Connection failed</p>
+                      <p className="opacity-90">{verifyResult.error}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="name">Server Name</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Production logs" />

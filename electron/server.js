@@ -4,6 +4,7 @@ const fs = require('fs');
 const { Client: Client8 } = require('@elastic/elasticsearch-8');
 const { Client: Client7 } = require('@elastic/elasticsearch-7');
 const { Client: Client9 } = require('@elastic/elasticsearch-9');
+const { Agent } = require('https');
 
 const app = express();
 app.use(cors());
@@ -33,7 +34,10 @@ const getClientConfig = (req) => {
     auth: (username && password) ? { username, password } : undefined,
     tls: { 
       rejectUnauthorized: false 
-    }
+    },
+    agent: new Agent({
+      rejectUnauthorized: false
+    })
   };
 
   if (certPath && fs.existsSync(certPath)) {

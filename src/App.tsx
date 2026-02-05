@@ -5,6 +5,7 @@ import AppSettingsPage from './pages/AppSettingsPage';
 import ServerSettingsPage from './pages/ServerSettingsPage';
 import { Sidebar } from '@/components/sidebar';
 import { ServerProvider } from '@/context/server-context';
+import { TabsProvider } from '@/context/tabs-context';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,9 +38,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ServerProvider>
-        <Router>
-          <AppLayout />
-        </Router>
+        <TabsProvider>
+          <Router>
+            <AppLayout />
+          </Router>
+        </TabsProvider>
       </ServerProvider>
     </QueryClientProvider>
   );

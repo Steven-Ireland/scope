@@ -20,6 +20,7 @@ export function useFields(index: string) {
     queryKey: ['fields', activeServer?.id, index],
     queryFn: () => apiClient.getFields(index, activeServer!),
     enabled: !!activeServer && !!index,
+    placeholderData: (previousData) => previousData,
   });
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, Suspense, useMemo, useCallback, useRef } from 'react';
 import { useSearchState } from '@/hooks/use-search-state';
 import { useIndices, useFields, useSearch } from '@/hooks/use-elasticsearch';
 import { DateHistogram } from '@/components/date-histogram';
@@ -6,10 +6,19 @@ import { SearchHeader } from './SearchPage/components/SearchHeader';
 import { ResultsTable } from './SearchPage/components/ResultsTable';
 import { DocumentDetails } from './SearchPage/components/DocumentDetails';
 import { LogEntry } from '@/types/elasticsearch';
+import { useTabs } from '@/context/tabs-context';
+import { SearchTabs } from '@/components/search-tabs';
+import { useServer } from '@/context/server-context';
 
 const EMPTY_ARRAY: any[] = [];
 
 function SearchContent() {
+  const {
+    activeTabId,
+    activeTab,
+    updateTab,
+  } = useTabs();
+
   const {
     index,
     query: queryFromUrl,
@@ -26,10 +35,41 @@ function SearchContent() {
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(EMPTY_ARRAY);
 
-  // Sync searchInput when URL changes (e.g., back button)
-  useEffect(() => {
+  // Track which tab's state is currently "active" in the URL to prevent cross-tab contamination
+  const appliedTabIdRef = useRef<string | null>(null);
+
+  // Sync searchInput when URL changes (e.g., back button or tab switch)
+  useLayoutEffect(() => {
     setSearchInput(queryFromUrl);
   }, [queryFromUrl]);
+
+  // When activeTabId changes, push its state to the URL
+  useLayoutEffect(() => {
+    if (activeTab && appliedTabIdRef.current !== activeTabId) {
+      updateSearch({
+        index: activeTab.index,
+        q: activeTab.query,
+        from: activeTab.dateRange?.from?.toISOString(),
+        to: activeTab.dateRange?.to?.toISOString(),
+        sort: activeTab.sortField === '@timestamp' ? undefined : activeTab.sortField,
+        order: activeTab.sortOrder === 'desc' ? undefined : activeTab.sortOrder,
+      }, true);
+      appliedTabIdRef.current = activeTabId;
+    }
+  }, [activeTabId, activeTab, updateSearch]);
+
+  // Only update the active tab's state if the URL reflects the CURRENT active tab
+  useLayoutEffect(() => {
+    if (activeTabId && appliedTabIdRef.current === activeTabId) {
+      updateTab(activeTabId, {
+        index,
+        query: queryFromUrl,
+        dateRange,
+        sortField,
+        sortOrder,
+      });
+    }
+  }, [index, queryFromUrl, dateRange, sortField, sortOrder, activeTabId, updateTab]);
 
   // Close sidebar when index, query, or date range changes
   useEffect(() => {
@@ -143,7 +183,7 @@ function SearchContent() {
   }, [setDateRange]);
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <SearchHeader
         indices={indices}
         selectedIndex={index}
@@ -171,10 +211,6 @@ function SearchContent() {
             </p>
           </div>
         </main>
-      ) : fieldsLoading ? (
-        <main className="flex-1 flex items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </main>
       ) : (
         <>
           {(histogramData.length > 0 || searchLoading) && (
@@ -200,7 +236,7 @@ function SearchContent() {
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
               <ResultsTable
                 logs={logs}
-                loading={searchLoading}
+                loading={searchLoading || fieldsLoading}
                 columns={visibleColumns}
                 sortField={sortField}
                 sortOrder={sortOrder}
@@ -228,9 +264,21 @@ function SearchContent() {
 }
 
 export default function SearchPage() {
+  const { activeServer } = useServer();
+  const { tabs, activeTabId, setActiveTabId, removeTab, addTab } = useTabs();
+  
   return (
-    <Suspense fallback={<div className="p-8">Loading search...</div>}>
-      <SearchContent />
-    </Suspense>
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
+      <SearchTabs
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onTabSelect={setActiveTabId}
+        onTabClose={removeTab}
+        onTabAdd={addTab}
+      />
+      <Suspense fallback={<div className="flex-1 p-8 text-muted-foreground animate-pulse">Loading search...</div>}>
+        <SearchContent key={activeServer?.id} />
+      </Suspense>
+    </div>
   );
 }

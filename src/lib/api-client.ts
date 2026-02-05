@@ -35,6 +35,7 @@ const getHeaders = (server?: ServerConfig) => {
     if (server.password) headers['x-scope-password'] = server.password;
     if (server.certPath) headers['x-scope-cert'] = server.certPath;
     if (server.keyPath) headers['x-scope-key'] = server.keyPath;
+    if (server.majorVersion) headers['x-scope-version'] = String(server.majorVersion);
   }
   return headers;
 };
@@ -90,9 +91,10 @@ export const apiClient = {
     return res.json();
   },
 
-  async verifyServer(server: Omit<ServerConfig, 'id'> | ServerConfig) {
+  async verifyServer(server: Omit<ServerConfig, 'id'> | ServerConfig, signal?: AbortSignal) {
     const res = await fetch(`${BASE_URL}/api/verify-server`, {
       headers: getHeaders(server as ServerConfig),
+      signal,
     });
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));

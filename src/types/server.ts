@@ -7,4 +7,5 @@ export interface ServerConfig {
   color?: string;
   certPath?: string;
   keyPath?: string;
+  majorVersion?: number;
 }

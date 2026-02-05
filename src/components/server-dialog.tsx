@@ -24,7 +24,7 @@ export function ServerDialog({ open, onOpenChange, onSave }: ServerDialogProps) 
   const [certPath, setCertPath] = useState('');
   const [keyPath, setKeyPath] = useState('');
   const [verifying, setVerifying] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<{ success: boolean; version?: string; error?: string } | null>(null);
+  const [verificationResult, setVerificationResult] = useState<{ success: boolean; version?: string; majorVersion?: number; error?: string } | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -52,7 +52,11 @@ export function ServerDialog({ open, onOpenChange, onSave }: ServerDialogProps) 
         certPath: certPath || undefined,
         keyPath: keyPath || undefined,
       });
-      setVerificationResult({ success: true, version: result.version });
+      setVerificationResult({ 
+        success: true, 
+        version: result.version, 
+        majorVersion: result.majorVersion 
+      });
     } catch (error: any) {
       setVerificationResult({ success: false, error: error.message });
     } finally {
@@ -69,6 +73,7 @@ export function ServerDialog({ open, onOpenChange, onSave }: ServerDialogProps) 
       color: selectedColor,
       certPath: certPath || undefined,
       keyPath: keyPath || undefined,
+      majorVersion: verificationResult?.success ? verificationResult.majorVersion : undefined,
     });
     onOpenChange(false);
   };

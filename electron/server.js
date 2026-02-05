@@ -28,32 +28,61 @@ const getClientConfig = (req) => {
   const password = req.headers['x-scope-password'];
   const certPath = req.headers['x-scope-cert'];
   const keyPath = req.headers['x-scope-key'];
+  const majorVersion = req.headers['x-scope-version'] ? parseInt(req.headers['x-scope-version']) : undefined;
 
   const config = {
     node: url,
     auth: (username && password) ? { username, password } : undefined,
     agent: new Agent({
       connect: {
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        cert: certPath && fs.readFileSync(certPath) || undefined,
+        key: keyPath && fs.readFileSync(keyPath) || undefined,
       }
     })
   };
 
-  if (certPath && fs.existsSync(certPath)) {
-    config.tls.cert = fs.readFileSync(certPath);
-  }
-  if (keyPath && fs.existsSync(keyPath)) {
-    config.tls.key = fs.readFileSync(keyPath);
-  }
-
-  return { config, url };
+  return { config, url, majorVersion };
 };
 
 const getVersionedClient = async (req) => {
-  const { config, url } = getClientConfig(req);
+  const { config, url, majorVersion: hintMajorVersion } = getClientConfig(req);
   
   if (clientCache.has(url)) {
-    return clientCache.get(url).client;
+    const cached = clientCache.get(url);
+    // If we have a hint and it matches cached major version, use cached client
+    if (!hintMajorVersion || cached.majorVersion === hintMajorVersion) {
+      return cached.client;
+    }
+    // If hint is different, we'll re-detect or use the hint
+  }
+
+  if (hintMajorVersion) {
+    let client;
+    switch (hintMajorVersion) {
+      case 7:
+        client = new Client7(config);
+        break;
+      case 8:
+        client = new Client8(config);
+        break;
+      case 9:
+        client = new Client9(config);
+        break;
+      default:
+        console.warn(`Unknown hint major version: ${hintMajorVersion}, falling back to detection`);
+    }
+    if (client) {
+      // Still good to verify it works and get full version number
+      try {
+        const info = normalizeResponse(await client.info());
+        const versionNum = info.version.number;
+        clientCache.set(url, { client, version: versionNum, majorVersion: hintMajorVersion });
+        return client;
+      } catch (e) {
+        console.warn(`Hinted client version ${hintMajorVersion} failed: ${e.message}, falling back to detection`);
+      }
+    }
   }
 
   const clientVersions = [

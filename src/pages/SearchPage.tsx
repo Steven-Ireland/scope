@@ -118,11 +118,12 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
 
   const visibleColumns = useMemo(() => {
     if (!index) return EMPTY_ARRAY;
+    if (activeTab?.columns && activeTab.columns.length > 0) return activeTab.columns;
     const config = columnConfigs[index];
     if (config) return config;
     if (fields.length > 0) return getDefaultColumns(fields, timestampField);
     return timestampField ? [timestampField] : ['_source'];
-  }, [index, columnConfigs, fields, getDefaultColumns, timestampField]);
+  }, [index, activeTab?.columns, columnConfigs, fields, getDefaultColumns, timestampField]);
 
   const handleToggleColumn = useCallback((col: string) => {
     if (!index) return;
@@ -131,26 +132,29 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
     if (current.includes(col)) {
       next = current.filter((c) => c !== col);
     } else {
-      next = [...current, col].sort((a, b) => {
-        if (timestampField) {
-          if (a === timestampField) return -1;
-          if (b === timestampField) return 1;
-        }
-        return a.localeCompare(b);
-      });
+      next = [...current, col];
     }
-    setColumnConfig(index, next);
-  }, [index, visibleColumns, setColumnConfig, timestampField]);
+    handleUpdateSearch({ columns: next });
+  }, [index, visibleColumns, handleUpdateSearch]);
+
+  const handleMoveColumn = useCallback((fromIndex: number, toIndex: number) => {
+    const next = [...visibleColumns];
+    const [removed] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, removed);
+    handleUpdateSearch({ columns: next });
+  }, [visibleColumns, handleUpdateSearch]);
 
   const handleSaveDefaultColumns = useCallback(() => {
-    // Already saved in store via setColumnConfig
-  }, []);
+    if (index) {
+      setColumnConfig(index, visibleColumns);
+    }
+  }, [index, visibleColumns, setColumnConfig]);
 
   const handleResetColumns = useCallback(() => {
     if (index) {
-      setColumnConfig(index, getDefaultColumns(fields, timestampField));
+      handleUpdateSearch({ columns: undefined });
     }
-  }, [index, fields, getDefaultColumns, setColumnConfig, timestampField]);
+  }, [index, handleUpdateSearch]);
 
   const handleSearch = useCallback(() => {
     handleUpdateSearch({ query: searchInput });
@@ -170,7 +174,7 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
 
   const handleIndexChange = useCallback((newIndex: string) => {
     setSelectedLog(tabId, null);
-    handleUpdateSearch({ index: newIndex });
+    handleUpdateSearch({ index: newIndex, columns: undefined });
   }, [tabId, handleUpdateSearch, setSelectedLog]);
 
   const handleDateRangeChange = useCallback((range: any) => {
@@ -192,6 +196,7 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
         fieldsLoading={fieldsLoading}
         visibleColumns={visibleColumns}
         onToggleColumn={handleToggleColumn}
+        onMoveColumn={handleMoveColumn}
         onResetColumns={handleResetColumns}
         onSaveDefaultColumns={handleSaveDefaultColumns}
         loading={searchLoading}

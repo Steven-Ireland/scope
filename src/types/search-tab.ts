@@ -8,4 +8,5 @@ export interface SearchTab {
   dateRange: DateRange | undefined;
   sortField: string;
   sortOrder: 'asc' | 'desc';
+  columns?: string[];
 }

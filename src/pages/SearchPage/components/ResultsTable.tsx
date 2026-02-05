@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+import { cn, getValueByPath } from '@/lib/utils';
 import { LogEntry, ElasticsearchField } from '@/types/elasticsearch';
 import { useCallback } from 'react';
 
@@ -99,28 +99,31 @@ export function ResultsTable({
                 )}
                 onClick={() => onSelectLog(log)}
               >
-                {columns.map((col) => (
-                  <TableCell key={col} className={isDateField(col) ? 'font-mono text-xs' : 'max-w-lg truncate'}>
-                    {col === 'level' ? (
-                      <span
-                        className={cn(
-                          'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset',
-                          log._source.level === 'error'
-                            ? 'bg-nord11/10 text-nord11 ring-nord11/20'
-                            : log._source.level === 'warn'
-                            ? 'bg-nord13/10 text-nord13 ring-nord13/20'
-                            : 'bg-nord3/10 text-nord4 ring-nord3/20'
-                        )}
-                      >
-                        {log._source.level || 'info'}
-                      </span>
-                    ) : typeof log._source[col] === 'object' ? (
-                      JSON.stringify(log._source[col])
-                    ) : (
-                      String(log._source[col] ?? '')
-                    )}
-                  </TableCell>
-                ))}
+                {columns.map((col) => {
+                  const val = getValueByPath(log._source, col);
+                  return (
+                    <TableCell key={col} className={isDateField(col) ? 'font-mono text-xs' : 'max-w-lg truncate'}>
+                      {col === 'level' ? (
+                        <span
+                          className={cn(
+                            'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset',
+                            val === 'error'
+                              ? 'bg-nord11/10 text-nord11 ring-nord11/20'
+                              : val === 'warn'
+                              ? 'bg-nord13/10 text-nord13 ring-nord13/20'
+                              : 'bg-nord3/10 text-nord4 ring-nord3/20'
+                          )}
+                        >
+                          {val || 'info'}
+                        </span>
+                      ) : typeof val === 'object' && val !== null ? (
+                        JSON.stringify(val)
+                      ) : (
+                        String(val ?? '')
+                      )}
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             ))
           )}

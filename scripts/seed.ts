@@ -126,6 +126,16 @@ async function seedLogs(client: Client) {
           user: { type: 'keyword' },
           response_time: { type: 'integer' },
           status_code: { type: 'integer' },
+          transaction: {
+            properties: {
+              processor: {
+                properties: {
+                  name: { type: 'keyword' }
+                }
+              },
+              amount: { type: 'float' }
+            }
+          }
         },
       },
     },
@@ -155,6 +165,12 @@ async function seedLogs(client: Client) {
         user: faker.internet.username(),
         response_time: faker.number.int({ min: 10, max: 2000 }),
         status_code: faker.helpers.arrayElement([200, 201, 400, 401, 403, 404, 500]),
+        transaction: {
+          processor: {
+            name: faker.helpers.arrayElement(['stripe', 'paypal', 'braintree', 'adyen']),
+          },
+          amount: faker.number.float({ min: 1, max: 1000, fractionDigits: 2 }),
+        },
       });
     }
     await client.bulk({ body });

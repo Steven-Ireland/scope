@@ -2,6 +2,8 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { LogEntry } from '@/types/elasticsearch';
+import { flattenObject } from '@/lib/utils';
+import { useMemo } from 'react';
 
 interface DocumentDetailsProps {
   log: LogEntry;
@@ -9,7 +11,8 @@ interface DocumentDetailsProps {
 }
 
 export function DocumentDetails({ log, onClose }: DocumentDetailsProps) {
-  console.log('Rendering DocumentDetails for log:', log._id);
+  const flattenedSource = useMemo(() => flattenObject(log._source), [log._source]);
+
   return (
     <div className="h-full flex flex-col min-w-0">
       <div className="p-4 border-b flex items-center justify-between shrink-0">
@@ -24,14 +27,14 @@ export function DocumentDetails({ log, onClose }: DocumentDetailsProps) {
           <p className="font-mono text-sm break-all">{log._id}</p>
         </div>
         <Separator />
-        {Object.entries(log._source)
+        {Object.entries(flattenedSource)
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([key, value]) => (
             <div key={key} className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground uppercase">{key}</span>
               <div className="bg-muted/30 rounded p-2 overflow-auto">
                 <pre className="text-sm font-mono whitespace-pre-wrap break-all">
-                  {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                  {typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : String(value)}
                 </pre>
               </div>
             </div>

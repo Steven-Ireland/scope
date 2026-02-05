@@ -38,6 +38,7 @@ const getClientConfig = (req) => {
         rejectUnauthorized: false,
         cert: certPath && fs.readFileSync(certPath) || undefined,
         key: keyPath && fs.readFileSync(keyPath) || undefined,
+        checkServerIdentity: () => undefined,
       }
     })
   };

@@ -31,7 +31,7 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex flex-col w-14 border-r bg-card h-screen items-center py-4 shrink-0 gap-4">
+    <div className="flex flex-col w-14 border-r bg-background h-screen items-center py-4 shrink-0 gap-4">
       <div className="flex flex-col gap-3 w-full items-center overflow-y-auto flex-1 no-scrollbar">
         {servers.map((server) => {
           const colorConfig = SERVER_COLORS.find(c => c.bg === server.color) || SERVER_COLORS[0];
@@ -84,8 +84,8 @@ export function Sidebar() {
           className={cn(
             "flex items-center justify-center w-10 h-10 rounded-[20px] transition-all duration-200 hover:rounded-[12px]",
             editingServerId === 'new'
-              ? "bg-green-500 text-white rounded-[12px]"
-              : "bg-muted text-green-500 hover:bg-green-500 hover:text-white"
+              ? "bg-nord14 text-nord0 rounded-[12px]"
+              : "bg-muted text-nord14 hover:bg-nord14 hover:text-nord0"
           )}
           title="Add Server"
         >

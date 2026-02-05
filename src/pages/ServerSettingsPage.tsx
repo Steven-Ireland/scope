@@ -129,9 +129,9 @@ export default function ServerSettingsPage() {
           <CardContent className="space-y-4">
             <div className={cn(
               "p-4 rounded-md flex items-start gap-3 text-sm transition-all border min-h-[4.5rem]",
-              isFetching ? "bg-orange-500/10 text-orange-500 border-orange-500/20" :
+              isFetching ? "bg-nord12/10 text-nord12 border-nord12/20" :
               error ? "bg-destructive/10 text-destructive border-destructive/20" :
-              verify?.success ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-muted/50 border-transparent"
+              verify?.success ? "bg-nord14/10 text-nord14 border-nord14/20" : "bg-muted/50 border-transparent"
             )}>
               {isFetching ? (
                 <><Loader2 className="h-5 w-5 shrink-0 animate-spin" /><div><p className="font-semibold">Verifying...</p><p className="opacity-90">{form.url}</p></div></>
@@ -147,7 +147,7 @@ export default function ServerSettingsPage() {
 
             <div className="grid gap-2"><Label>Theme Color</Label>
               <div className="flex flex-wrap gap-2">{SERVER_COLORS.map(c => (
-                <button key={c.bg} className={cn("w-8 h-8 rounded-full border-2", c.bg, form.color === c.bg ? "border-white scale-110" : "border-transparent")} onClick={() => update({ color: c.bg })} />
+                <button key={c.bg} className={cn("w-8 h-8 rounded-full border-2", c.bg, form.color === c.bg ? "border-nord6 scale-110" : "border-transparent")} onClick={() => update({ color: c.bg })} />
               ))}</div>
             </div>
 

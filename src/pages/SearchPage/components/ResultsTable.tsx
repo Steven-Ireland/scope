@@ -106,10 +106,10 @@ export function ResultsTable({
                         className={cn(
                           'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset',
                           log._source.level === 'error'
-                            ? 'bg-red-500/10 text-red-500 ring-red-500/20'
+                            ? 'bg-nord11/10 text-nord11 ring-nord11/20'
                             : log._source.level === 'warn'
-                            ? 'bg-yellow-500/10 text-yellow-500 ring-yellow-500/20'
-                            : 'bg-gray-500/10 text-gray-400 ring-gray-500/20'
+                            ? 'bg-nord13/10 text-nord13 ring-nord13/20'
+                            : 'bg-nord3/10 text-nord4 ring-nord3/20'
                         )}
                       >
                         {log._source.level || 'info'}

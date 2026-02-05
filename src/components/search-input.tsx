@@ -29,15 +29,15 @@ interface SearchInputProps {
 
 const getTypeColor = (type?: string) => {
   switch (type) {
-    case 'keyword': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    case 'keyword': return 'bg-nord9/10 text-nord9 border-nord9/20';
     case 'integer':
     case 'long':
     case 'float':
-    case 'double': return 'bg-green-500/10 text-green-400 border-green-500/20';
-    case 'date': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-    case 'text': return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
-    case 'boolean': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
-    default: return 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
+    case 'double': return 'bg-nord14/10 text-nord14 border-nord14/20';
+    case 'date': return 'bg-nord13/10 text-nord13 border-nord13/20';
+    case 'text': return 'bg-nord12/10 text-nord12 border-nord12/20';
+    case 'boolean': return 'bg-nord15/10 text-nord15 border-nord15/20';
+    default: return 'bg-nord3/10 text-nord4 border-nord3/20';
   }
 };
 

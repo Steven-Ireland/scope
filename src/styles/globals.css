@@ -28,28 +28,45 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  --color-nord0: #2e3440;
+  --color-nord1: #3b4252;
+  --color-nord2: #434c5e;
+  --color-nord3: #4c566a;
+  --color-nord4: #d8dee9;
+  --color-nord5: #e5e9f0;
+  --color-nord6: #eceff4;
+  --color-nord7: #8fbcbb;
+  --color-nord8: #88c0d0;
+  --color-nord9: #81a1c1;
+  --color-nord10: #5e81ac;
+  --color-nord11: #bf616a;
+  --color-nord12: #d08770;
+  --color-nord13: #ebcb8b;
+  --color-nord14: #a3be8c;
+  --color-nord15: #b48ead;
 }
 
 :root {
-  --background: hsl(222.2 84% 4.9%);
-  --foreground: hsl(210 40% 98%);
-  --card: hsl(222.2 84% 4.9%);
-  --card-foreground: hsl(210 40% 98%);
-  --popover: hsl(222.2 84% 4.9%);
-  --popover-foreground: hsl(210 40% 98%);
-  --primary: hsl(210 40% 98%);
-  --primary-foreground: hsl(222.2 47.4% 11.2%);
-  --secondary: hsl(217.2 32.6% 17.5%);
-  --secondary-foreground: hsl(210 40% 98%);
-  --muted: hsl(217.2 32.6% 17.5%);
-  --muted-foreground: hsl(215 20.2% 65.1%);
-  --accent: hsl(217.2 32.6% 17.5%);
-  --accent-foreground: hsl(210 40% 98%);
-  --destructive: hsl(0 62.8% 30.6%);
-  --destructive-foreground: hsl(210 40% 98%);
-  --border: hsl(217.2 32.6% 17.5%);
-  --input: hsl(217.2 32.6% 17.5%);
-  --ring: hsl(212.7 26.8% 83.9%);
+  --background: hsl(220 16% 22%); /* Nord0 #2e3440 */
+  --foreground: hsl(218 27% 88%); /* Nord4 #d8dee9 */
+  --card: hsl(220 16% 22%); /* Nord0 #2e3440 */
+  --card-foreground: hsl(218 27% 94%); /* Nord5 #e5e9f0 */
+  --popover: hsl(220 16% 28%); /* Nord1 #3b4252 */
+  --popover-foreground: hsl(218 27% 94%); /* Nord5 #e5e9f0 */
+  --primary: hsl(193 43% 67%); /* Nord8 #88c0d0 */
+  --primary-foreground: hsl(220 16% 22%); /* Nord0 #2e3440 */
+  --secondary: hsl(220 16% 28%); /* Nord1 #3b4252 */
+  --secondary-foreground: hsl(218 27% 94%); /* Nord5 #e5e9f0 */
+  --muted: hsl(220 16% 28%); /* Nord1 #3b4252 */
+  --muted-foreground: hsl(218 27% 88%); /* Nord4 #d8dee9 */
+  --accent: hsl(220 17% 32%); /* Nord2 #434c5e */
+  --accent-foreground: hsl(218 27% 94%); /* Nord5 #e5e9f0 */
+  --destructive: hsl(354 42% 56%); /* Nord11 #bf616a */
+  --destructive-foreground: hsl(218 27% 94%); /* Nord5 #e5e9f0 */
+  --border: hsl(220 17% 36%); /* Nord3 #4c566a */
+  --input: hsl(220 17% 36%); /* Nord3 #4c566a */
+  --ring: hsl(193 43% 67%); /* Nord8 #88c0d0 */
   --radius: 0.5rem;
 }
 

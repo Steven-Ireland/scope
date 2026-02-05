@@ -209,7 +209,7 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
       ) : (
         <>
           {(histogramData.length > 0 || searchLoading) && (
-            <div className="px-2 bg-card border-b shrink-0 h-16 flex flex-col justify-center">
+            <div className="px-2 bg-background border-b shrink-0 h-16 flex flex-col justify-center">
               <div
                 className={`w-full transition-opacity duration-200 ${
                   searchLoading && histogramData.length > 0 ? 'opacity-40' : 'opacity-100'

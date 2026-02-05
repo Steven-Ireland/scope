@@ -53,7 +53,7 @@ export function SearchHeader({
   const [columnSearch, setColumnSearch] = useState('');
 
   return (
-    <header className="border-b p-4 flex flex-col md:flex-row md:items-center gap-4 bg-card shrink-0">
+    <header className="border-b p-4 flex flex-col md:flex-row md:items-center gap-4 bg-background shrink-0">
       <div className="flex items-center gap-2">
         <Select value={selectedIndex} onValueChange={onIndexChange}>
           <SelectTrigger className="w-[180px]">
@@ -70,7 +70,7 @@ export function SearchHeader({
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2 shrink-0 h-10">
+            <Button variant="outline" className="gap-2 shrink-0">
               <Columns className="h-4 w-4" />
               <span className="hidden lg:inline">Columns</span>
             </Button>

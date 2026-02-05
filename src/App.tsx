@@ -18,7 +18,7 @@ function AppLayout() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-background">
         <div className="flex-1 overflow-hidden">
           <Routes>
             <Route path="/" element={<Navigate to="/search" replace />} />

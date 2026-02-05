@@ -18,15 +18,15 @@ export function SearchTabs({
   onTabAdd,
 }: SearchTabsProps) {
   return (
-    <div className="flex items-center gap-1 px-4 pt-2 bg-card border-b overflow-x-auto no-scrollbar shrink-0 h-[45px]">
+    <div className="flex items-center gap-1 px-4 pt-2 bg-background border-b overflow-x-auto no-scrollbar shrink-0 h-[45px]">
       {tabs.map((tab) => (
         <div
           key={tab.id}
           className={cn(
             "group flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md border-t border-l border-r transition-colors cursor-pointer min-w-[120px] max-w-[240px] relative",
             activeTabId === tab.id
-              ? "bg-background border-border text-foreground z-10 -mb-[1px]"
-              : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50"
+              ? "bg-nord1 border-border text-foreground z-10 -mb-[1px]"
+              : "bg-background border-transparent text-muted-foreground hover:bg-muted/30"
           )}
           onClick={() => onTabSelect(tab.id)}
         >

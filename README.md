@@ -2,16 +2,18 @@
 
 **Scope** is a lightweight, modern data explorer for Elasticsearch, designed as a minimalist alternative to Kibana. It focuses on speed, simplicity, and a clean user experience for developers who need to quickly browse and search their log data. Available as a desktop application and a web interface.
 
-![Scope Screenshot](docs/screenshot.png)
+![Scope Screenshot](docs/screenshot2.png)
 
 ## Key Features
 
 - **Desktop & Web**: Run as a standalone Electron app or in your browser.
-- **Index Discovery**: Automatically fetches and lists available non-system indices.
-- **Smart Autocomplete**: Search bar suggests field names based on the active index's mapping.
-- **Visualizations**: Built-in date histogram to see event spikes and trends.
-- **Dynamic Data Explorer**: Table columns automatically adjust based on the fields present in the selected index.
-- **Multi-Server Support**: Easily switch between local and production Elasticsearch clusters.
+- **Index Discovery & Patterns**: Automatically fetches indices and supports custom patterns (e.g., `logs-*`) for grouping.
+- **Persistent Search Tabs**: Open multiple searches simultaneously; tabs are saved across sessions.
+- **Multi-Version Support**: Seamlessly connects to Elasticsearch 7.x, 8.x, and 9.x clusters.
+- **Smart Autocomplete**: Real-time suggestions for field names and values.
+- **Visualizations**: Built-in date histogram with automatic scaling to see event spikes and trends.
+- **Multi-Server Support**: Easily switch between local, staging, and production clusters with support for Basic Auth and SSL.
+- **Nord Theme**: A clean, modern UI based on the Nord color palette.
 
 ## Quick Start
 

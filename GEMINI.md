@@ -7,34 +7,39 @@
 - **Name**: Scope
 - **Type**: Desktop App (Electron) / Web SPA (React)
 - **Primary Goal**: Provide a fast interface for querying and visualizing Elasticsearch indices.
-- **Current Status**: MVP (Minimum Viable Product) - Core search, discovery, and basic visualizations are implemented.
+- **Current Status**: MVP+ - Core search, discovery, persistent tabs, and multi-version support are implemented.
 
 ## Key Features
 
-1.  **Index Discovery**: Automatically fetches and lists available non-system indices from the Elasticsearch cluster.
-2.  **Smart Autocomplete**: Search bar suggests field names based on the active index's mapping.
-3.  **Visualizations**: Integrated date histogram to visualize event distribution over time.
-4.  **Dynamic Data Explorer**: Table columns automatically adjust based on the fields present in the selected index.
-5.  **Flexible Connectivity**: Support for multiple Elasticsearch server configurations via the Server Settings.
-6.  **Dark Mode First**: A sleek, dark-themed UI built with `shadcn/ui` and Tailwind CSS v4.
-7.  **Local Development Ready**: Includes a Dockerized Elasticsearch instance and a multi-index data seeder (`npm run seed`).
+1.  **Index Discovery & Patterns**: Automatically fetches indices and supports custom index patterns (e.g., `logs-*`) for grouping date-based indices.
+2.  **Persistent Search Tabs**: Supports multiple concurrent search sessions with state persistence (index, query, filters, and columns) across restarts.
+3.  **Smart Autocomplete**: Search bar suggests field names and values based on the active index's mapping.
+4.  **Multi-Version Support**: Dynamic detection and support for Elasticsearch 7.x, 8.x, and 9.x.
+5.  **Visualizations**: Integrated date histogram to visualize event distribution over time with automatic bucket sizing.
+6.  **Flexible Connectivity**: Support for multiple Elasticsearch configurations, including Basic Auth and SSL/TLS (custom certificates).
+7.  **Nord Theme**: A clean, professional UI inspired by the Nord color palette, built with `shadcn/ui` and Tailwind CSS v4.
+8.  **Local Development Ready**: Includes a Dockerized Elasticsearch instance and a multi-index data seeder (`npm run seed`).
 
 ## Architecture
 
 ### Frontend
 -   **Framework**: React 19 (Vite)
+-   **State Management**: Zustand (with persistence)
 -   **Routing**: React Router v7
--   **Styling**: Tailwind CSS v4
+-   **Styling**: Tailwind CSS v4 (Nord theme)
 -   **Components**: shadcn/ui (Radix UI primitives)
 -   **Visualizations**: Recharts
 
 ### Backend / Desktop
 -   **Runtime**: Node.js (Express) & Electron
--   **Database Client**: `@elastic/elasticsearch` (v8)
+-   **Database Client**: Dynamic versioning support for `@elastic/elasticsearch` (v7, v8, v9)
+-   **Networking**: `undici` for high-performance HTTP requests
 -   **Endpoints**:
-    -   `GET /api/indices`: Lists available indices.
-    -   `GET /api/fields`: Fetches flattened mapping fields for an index.
+    -   `GET /api/indices`: Lists available indices and applies pattern grouping.
+    -   `GET /api/fields`: Fetches flattened mapping fields for an index or pattern.
+    -   `GET /api/values`: Provides autocomplete suggestions for field values.
     -   `POST /api/search`: Proxies Lucene-style queries and aggregations to Elasticsearch.
+    -   `GET /api/verify-server`: Validates connection and detects ES version.
 
 ## Quick Start
 
@@ -58,11 +63,11 @@
 ## Directory Structure
 
 -   `/src`: Frontend React application.
-    -   `/components`: UI components (Sidebar, SearchInput, UI primitives, Date Histogram).
+    -   `/components`: UI components (Tabs, Sidebar, SearchInput, Date Histogram).
     -   `/pages`: Application pages (Search, App Settings, Server Settings).
+    -   `/store`: Zustand stores for search and configuration.
     -   `/lib`: Shared utilities and API client.
-    -   `/context`: React Context for server and app state.
 -   `/electron`: Electron main process, preload scripts, and Express server logic.
--   `/scripts`: Utility scripts (data seeding).
+-   `/scripts`: Utility scripts (data seeding, release management).
 -   `/public`: Static assets.
 -   `docker-compose.yml`: Local infrastructure definition.

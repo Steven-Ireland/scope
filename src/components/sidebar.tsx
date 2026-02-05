@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Plus, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useServer } from '@/context/server-context';
-import { ServerDialog } from './server-dialog';
 import { ServerConfig } from '@/types/server';
 import {
   ContextMenu,
@@ -14,14 +13,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SERVER_COLORS } from '@/lib/constants';
 
 export function Sidebar() {
-  const { servers, activeServer, setActiveServerId, addServer, removeServer } = useServer();
-  const [isAddOpen, setIsAddOpen] = useState(false);
+  const { servers, activeServer, setActiveServerId, removeServer } = useServer();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleAdd = (config: Omit<ServerConfig, 'id'>) => {
-    addServer(config);
-  };
+  const serverSettingsMatch = location.pathname.match(/\/settings\/server\/([^/]+)/);
+  const editingServerId = serverSettingsMatch ? serverSettingsMatch[1] : null;
 
   const handleServerClick = (id: string) => {
     setActiveServerId(id);
@@ -35,6 +32,13 @@ export function Sidebar() {
       <div className="flex flex-col gap-3 w-full items-center overflow-y-auto flex-1 no-scrollbar">
         {servers.map((server) => {
           const colorConfig = SERVER_COLORS.find(c => c.bg === server.color) || SERVER_COLORS[0];
+          
+          // If we're in settings, only highlight the one we're editing
+          // If we're not in settings (e.g. search), highlight the active one
+          const isHighlighted = editingServerId 
+            ? editingServerId === server.id
+            : activeServer?.id === server.id;
+
           return (
             <ContextMenu key={server.id}>
               <ContextMenuTrigger>
@@ -42,7 +46,7 @@ export function Sidebar() {
                   onClick={() => handleServerClick(server.id)}
                   className={cn(
                     "relative flex items-center justify-center w-10 h-10 rounded-[20px] transition-all duration-200 group hover:rounded-[12px]",
-                    activeServer?.id === server.id
+                    isHighlighted
                       ? cn(colorConfig.bg, "text-primary-foreground rounded-[12px]")
                       : cn("bg-muted text-muted-foreground hover:text-primary-foreground", colorConfig.hover)
                   )}
@@ -73,8 +77,13 @@ export function Sidebar() {
         })}
 
         <button
-          onClick={() => setIsAddOpen(true)}
-          className="flex items-center justify-center w-10 h-10 rounded-[20px] bg-muted text-green-500 transition-all duration-200 hover:rounded-[12px] hover:bg-green-500 hover:text-white"
+          onClick={() => navigate('/settings/server/new')}
+          className={cn(
+            "flex items-center justify-center w-10 h-10 rounded-[20px] transition-all duration-200 hover:rounded-[12px]",
+            editingServerId === 'new'
+              ? "bg-green-500 text-white rounded-[12px]"
+              : "bg-muted text-green-500 hover:bg-green-500 hover:text-white"
+          )}
           title="Add Server"
         >
           <Plus className="w-5 h-5" />
@@ -95,12 +104,6 @@ export function Sidebar() {
           <Settings className="w-5 h-5" />
         </Link>
       </div>
-
-      <ServerDialog
-        open={isAddOpen}
-        onOpenChange={setIsAddOpen}
-        onSave={handleAdd}
-      />
     </div>
   );
 }

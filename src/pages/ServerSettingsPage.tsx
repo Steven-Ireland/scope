@@ -14,20 +14,29 @@ import { apiClient } from '@/lib/api-client';
 export default function ServerSettingsPage() {
   const { serverId } = useParams();
   const navigate = useNavigate();
-  const { servers, updateServer, removeServer } = useServer();
+  const { servers, updateServer, removeServer, addServer } = useServer();
+  const isNew = serverId === 'new';
   const server = servers.find(s => s.id === serverId);
 
   // Single source of truth for the form
-  const [form, setForm] = useState(server || {
-    id: '', name: '', url: '', username: '', password: '', 
-    color: '', certPath: '', keyPath: '', majorVersion: undefined
-  });
+  const [form, setForm] = useState(() => server || ({
+    id: '', name: '', url: 'http://localhost:9200', username: '', password: '', 
+    color: SERVER_COLORS[0].bg, certPath: '', keyPath: '', majorVersion: undefined
+  }));
 
-  // Keep form in sync if server changes externally (e.g. initial load)
-  useEffect(() => { if (server) setForm(server); }, [server?.id]);
+  // Keep form in sync if server changes externally (e.g. initial load or navigation)
+  useEffect(() => { 
+    if (server) {
+      setForm(server); 
+    } else if (isNew) {
+      setForm({
+        id: '', name: '', url: 'http://localhost:9200', username: '', password: '', 
+        color: SERVER_COLORS[0].bg, certPath: '', keyPath: '', majorVersion: undefined
+      });
+    }
+  }, [server?.id, isNew]);
 
   // TanStack Query handles the "Verify" logic. 
-  // It automatically cancels previous requests via signal when 'form' changes.
   const { data: verify, isFetching, error } = useQuery({
     queryKey: ['verify', form.url, form.username, form.password, form.certPath, form.keyPath],
     queryFn: ({ signal }) => apiClient.verifyServer(form, signal),
@@ -37,36 +46,51 @@ export default function ServerSettingsPage() {
 
   // Auto-save everything whenever the form or detected version changes
   useEffect(() => {
-    if (!server) return;
+    if (!server || isNew || form.id !== server.id) return;
+    
+    const { id: _, ...updates } = form;
     updateServer(server.id, { 
-      ...form, 
+      ...updates, 
       majorVersion: verify?.majorVersion ?? form.majorVersion,
       username: form.username || undefined,
       password: form.password || undefined,
       certPath: form.certPath || undefined,
       keyPath: form.keyPath || undefined,
     });
-  }, [form, verify?.majorVersion]);
+  }, [form, verify?.majorVersion, isNew, server?.id]);
 
-  if (!server) return <div className="p-8 text-center"><Button variant="link" onClick={() => navigate('/search')}>Not found</Button></div>;
+  if (!server && !isNew) return <div className="p-8 text-center"><Button variant="link" onClick={() => navigate('/search')}>Not found</Button></div>;
 
   const update = (updates: Partial<typeof form>) => setForm(prev => ({ ...prev, ...updates }));
+
+  const handleCreate = () => {
+    const { id, ...config } = form;
+    addServer({
+      ...config,
+      majorVersion: verify?.majorVersion ?? form.majorVersion,
+      username: form.username || undefined,
+      password: form.password || undefined,
+      certPath: form.certPath || undefined,
+      keyPath: form.keyPath || undefined,
+    });
+    navigate('/search');
+  };
 
   return (
     <div className="flex flex-col h-full bg-background overflow-auto">
       <header className="border-b p-4 flex items-center justify-between bg-card shrink-0">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
-          <h1 className="text-xl font-bold">Server Settings: {form.name}</h1>
+          <h1 className="text-xl font-bold">{isNew ? 'Add New Server' : `Server Settings: ${form.name}`}</h1>
         </div>
-        <Button variant="outline" size="sm" asChild><Link to="/search"><Search className="h-4 w-4 mr-2" />Search</Link></Button>
+        {!isNew && <Button variant="outline" size="sm" asChild><Link to="/search"><Search className="h-4 w-4 mr-2" />Search</Link></Button>}
       </header>
 
       <main className="flex-1 p-8 max-w-2xl mx-auto w-full space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Connection Details</CardTitle>
-            <CardDescription>Changes are saved automatically.</CardDescription>
+            <CardTitle>{isNew ? 'New Server Details' : 'Connection Details'}</CardTitle>
+            <CardDescription>{isNew ? 'Enter the details for your new Elasticsearch cluster.' : 'Changes are saved automatically.'}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className={cn(
@@ -84,8 +108,8 @@ export default function ServerSettingsPage() {
               ) : <p className="italic text-muted-foreground">Ready</p>}
             </div>
 
-            <div className="grid gap-2"><Label>Server Name</Label><Input value={form.name} onChange={e => update({ name: e.target.value })} /></div>
-            <div className="grid gap-2"><Label>Elasticsearch URL</Label><Input value={form.url} onChange={e => update({ url: e.target.value })} /></div>
+            <div className="grid gap-2"><Label>Server Name</Label><Input value={form.name} onChange={e => update({ name: e.target.value })} placeholder="My ES Cluster" /></div>
+            <div className="grid gap-2"><Label>Elasticsearch URL</Label><Input value={form.url} onChange={e => update({ url: e.target.value })} placeholder="http://localhost:9200" /></div>
 
             <div className="grid gap-2"><Label>Theme Color</Label>
               <div className="flex flex-wrap gap-2">{SERVER_COLORS.map(c => (
@@ -93,14 +117,14 @@ export default function ServerSettingsPage() {
               ))}</div>
             </div>
 
-            <div className="grid gap-2"><Label>Username</Label><Input value={form.username || ''} onChange={e => update({ username: e.target.value })} /></div>
-            <div className="grid gap-2"><Label>Password</Label><Input type="password" value={form.password || ''} onChange={e => update({ password: e.target.value })} /></div>
+            <div className="grid gap-2"><Label>Username</Label><Input value={form.username || ''} onChange={e => update({ username: e.target.value })} placeholder="optional" /></div>
+            <div className="grid gap-2"><Label>Password</Label><Input type="password" value={form.password || ''} onChange={e => update({ password: e.target.value })} placeholder="optional" /></div>
 
             <div className="border-t pt-4 space-y-4">
               <h4 className="text-sm font-semibold">Certs</h4>
               {(['certPath', 'keyPath'] as const).map(f => (
                 <div key={f} className="flex gap-2 items-end">
-                  <div className="grid gap-2 flex-1"><Label>{f}</Label><Input value={form[f] || ''} onChange={e => update({ [f]: e.target.value })} /></div>
+                  <div className="grid gap-2 flex-1"><Label>{f === 'certPath' ? 'Client Certificate (CRT)' : 'Client Key'}</Label><Input value={form[f] || ''} onChange={e => update({ [f]: e.target.value })} /></div>
                   <Button variant="outline" onClick={async () => {
                     const path = await window.electron?.selectFile?.(f);
                     if (path) update({ [f]: path });
@@ -109,8 +133,12 @@ export default function ServerSettingsPage() {
               ))}
             </div>
           </CardContent>
-          <CardFooter className="border-t p-6 mt-4">
-            <Button variant="destructive" onClick={() => { if (confirm(`Remove ${form.name}?`)) { removeServer(server.id); navigate('/search'); } }}>Delete Server</Button>
+          <CardFooter className="border-t p-6 mt-4 flex justify-between">
+            {isNew ? (
+              <Button onClick={handleCreate} disabled={!form.name || !form.url} className="ml-auto">Create Server</Button>
+            ) : (
+              <Button variant="destructive" onClick={() => { if (confirm(`Remove ${form.name}?`)) { removeServer(server.id); navigate('/search'); } }}>Delete Server</Button>
+            )}
           </CardFooter>
         </Card>
       </main>

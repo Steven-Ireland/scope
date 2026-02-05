@@ -4,7 +4,7 @@ const fs = require('fs');
 const { Client: Client8 } = require('@elastic/elasticsearch-8');
 const { Client: Client7 } = require('@elastic/elasticsearch-7');
 const { Client: Client9 } = require('@elastic/elasticsearch-9');
-const { Agent } = require('https');
+const { Agent } = require('undici');
 
 const app = express();
 app.use(cors());
@@ -32,11 +32,10 @@ const getClientConfig = (req) => {
   const config = {
     node: url,
     auth: (username && password) ? { username, password } : undefined,
-    tls: { 
-      rejectUnauthorized: false 
-    },
     agent: new Agent({
-      rejectUnauthorized: false
+      connect: {
+        rejectUnauthorized: false
+      }
     })
   };
 

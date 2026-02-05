@@ -236,7 +236,7 @@ app.get('/api/fields', async (req, res) => {
     const esClient = await getClient(req);
     const result = await esClient.indices.getMapping({ index });
     const response = normalizeResponse(result);
-    const allFields = [];
+    const fieldsMap = new Map();
     
     const getFieldsRecursive = (properties, prefix = '') => {
       if (!properties) return;
@@ -244,7 +244,12 @@ app.get('/api/fields', async (req, res) => {
         const fullPath = prefix ? `${prefix}.${key}` : key;
         const property = properties[key];
         const type = property.type || 'object';
-        allFields.push({ name: fullPath, type });
+        
+        // Only add if not already present, or if we want to prefer certain types
+        if (!fieldsMap.has(fullPath)) {
+          fieldsMap.set(fullPath, { name: fullPath, type });
+        }
+        
         if (property.properties) {
           getFieldsRecursive(property.properties, fullPath);
         }
@@ -257,7 +262,21 @@ app.get('/api/fields', async (req, res) => {
       }
     });
 
-    res.json(allFields.sort((a, b) => a.name.localeCompare(b.name)));
+    // Final deduplication by name using a Set of strings for safety, 
+    // although Map should have handled it, this is more explicit.
+    const seenNames = new Set();
+    const allFields = [];
+    
+    Array.from(fieldsMap.values())
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach(field => {
+        if (!seenNames.has(field.name)) {
+          seenNames.add(field.name);
+          allFields.push(field);
+        }
+      });
+
+    res.json(allFields);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

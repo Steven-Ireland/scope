@@ -216,6 +216,55 @@ async function seedMetrics(client: Client) {
   }
 }
 
+async function seedDailyLogs(client: Client) {
+  const levels = ['info', 'warn', 'error'];
+  const services = ['api-gateway', 'user-service', 'auth-service'];
+
+  for (let d = 0; d < 3; d++) {
+    const date = subDays(new Date(), d);
+    const dateStr = date.toISOString().split('T')[0].replace(/-/g, '.');
+    const indexName = `logs-${dateStr}`;
+
+    if (await client.indices.exists({ index: indexName })) {
+      console.log(`Deleting existing index: ${indexName}`);
+      await client.indices.delete({ index: indexName });
+    }
+
+    console.log(`Creating daily index: ${indexName}`);
+    await client.indices.create({
+      index: indexName,
+      body: {
+        mappings: {
+          properties: {
+            '@timestamp': { type: 'date' },
+            level: { type: 'keyword' },
+            message: { type: 'text' },
+            service: { type: 'keyword' },
+          },
+        },
+      },
+    });
+
+    console.log(`Generating data for ${indexName}...`);
+    const body = [];
+    for (let j = 0; j < 50; j++) {
+      const timestamp = faker.date.between({
+        from: date,
+        to: date,
+      });
+
+      body.push({ index: { _index: indexName } });
+      body.push({
+        '@timestamp': timestamp.toISOString(),
+        level: faker.helpers.arrayElement(levels),
+        message: faker.hacker.phrase(),
+        service: faker.helpers.arrayElement(services),
+      });
+    }
+    await client.bulk({ body });
+  }
+}
+
 async function seed() {
   for (const node of NODES) {
     console.log(`\n--- Seeding node: ${node} ---`);
@@ -226,6 +275,7 @@ async function seed() {
       await seedLogs(client);
       await seedMetrics(client);
       await seedLargeEvents(client);
+      await seedDailyLogs(client);
       console.log(`Seeding complete for ${node}!`);
     } catch (error) {
       console.error(`Could not seed node ${node}: ${error.message}`);

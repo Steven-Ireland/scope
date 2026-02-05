@@ -8,4 +8,5 @@ export interface ServerConfig {
   certPath?: string;
   keyPath?: string;
   majorVersion?: number;
+  indexPatterns?: string[];
 }

@@ -23,19 +23,36 @@ export default function ServerSettingsPage() {
   const server = servers.find(s => s.id === serverId);
 
   // Single source of truth for the form
-  const [form, setForm] = useState(() => server || ({
-    id: '', name: '', url: 'http://localhost:9200', username: '', password: '', 
-    color: SERVER_COLORS[0].bg, certPath: '', keyPath: '', majorVersion: undefined
+  const [form, setForm] = useState(() => ({
+    ...server,
+    id: server?.id || '',
+    name: server?.name || '',
+    url: server?.url || 'http://localhost:9200',
+    username: server?.username || '',
+    password: server?.password || '',
+    color: server?.color || SERVER_COLORS[0].bg,
+    certPath: server?.certPath || '',
+    keyPath: server?.keyPath || '',
+    majorVersion: server?.majorVersion,
+    indexPatterns: server?.indexPatterns || []
   }));
 
   // Keep form in sync if server changes externally (e.g. initial load or navigation)
   useEffect(() => { 
     if (server) {
-      setForm(server); 
+      setForm({
+        ...server,
+        username: server.username || '',
+        password: server.password || '',
+        certPath: server.certPath || '',
+        keyPath: server.keyPath || '',
+        indexPatterns: server.indexPatterns || []
+      }); 
     } else if (isNew) {
       setForm({
         id: '', name: '', url: 'http://localhost:9200', username: '', password: '', 
-        color: SERVER_COLORS[0].bg, certPath: '', keyPath: '', majorVersion: undefined
+        color: SERVER_COLORS[0].bg, certPath: '', keyPath: '', majorVersion: undefined,
+        indexPatterns: []
       });
     }
   }, [server?.id, isNew]);
@@ -64,6 +81,19 @@ export default function ServerSettingsPage() {
   }, [form, verify?.majorVersion, isNew, server?.id, updateServer]);
 
   if (!server && !isNew) return <div className="p-8 text-center"><Button variant="link" onClick={() => navigate('/search')}>Not found</Button></div>;
+
+  const [newPattern, setNewPattern] = useState('');
+
+  const addPattern = () => {
+    if (newPattern && !form.indexPatterns?.includes(newPattern)) {
+      update({ indexPatterns: [...(form.indexPatterns || []), newPattern] });
+      setNewPattern('');
+    }
+  };
+
+  const removePattern = (pattern: string) => {
+    update({ indexPatterns: form.indexPatterns?.filter(p => p !== pattern) });
+  };
 
   const update = (updates: Partial<typeof form>) => setForm(prev => ({ ...prev, ...updates }));
 
@@ -135,6 +165,30 @@ export default function ServerSettingsPage() {
                   }}>Browse</Button>
                 </div>
               ))}
+            </div>
+
+            <div className="border-t pt-4 space-y-4">
+              <h4 className="text-sm font-semibold">Index Patterns</h4>
+              <p className="text-xs text-muted-foreground">Define patterns (e.g., <code>logs-*</code>) to group date-based indices.</p>
+              <div className="space-y-2">
+                {form.indexPatterns?.map(pattern => (
+                  <div key={pattern} className="flex items-center justify-between bg-muted/50 p-2 rounded-md">
+                    <code className="text-sm">{pattern}</code>
+                    <Button variant="ghost" size="sm" onClick={() => removePattern(pattern)}>
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input 
+                  value={newPattern} 
+                  onChange={e => setNewPattern(e.target.value)} 
+                  placeholder="logs-*" 
+                  onKeyDown={e => e.key === 'Enter' && addPattern()}
+                />
+                <Button variant="outline" onClick={addPattern}>Add</Button>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="border-t p-6 mt-4 flex justify-between">

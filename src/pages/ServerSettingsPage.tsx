@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useServer } from '@/context/server-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,11 +9,16 @@ import { ArrowLeft, Search, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { SERVER_COLORS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
+import { useConfigStore } from '@/store/use-config-store';
 
 export default function ServerSettingsPage() {
   const { serverId } = useParams();
   const navigate = useNavigate();
-  const { servers, updateServer, removeServer, addServer } = useServer();
+  const servers = useConfigStore(state => state.servers);
+  const updateServer = useConfigStore(state => state.updateServer);
+  const removeServer = useConfigStore(state => state.removeServer);
+  const addServer = useConfigStore(state => state.addServer);
+  
   const isNew = serverId === 'new';
   const server = servers.find(s => s.id === serverId);
 
@@ -57,7 +61,7 @@ export default function ServerSettingsPage() {
       certPath: form.certPath || undefined,
       keyPath: form.keyPath || undefined,
     });
-  }, [form, verify?.majorVersion, isNew, server?.id]);
+  }, [form, verify?.majorVersion, isNew, server?.id, updateServer]);
 
   if (!server && !isNew) return <div className="p-8 text-center"><Button variant="link" onClick={() => navigate('/search')}>Not found</Button></div>;
 

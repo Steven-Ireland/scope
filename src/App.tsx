@@ -4,8 +4,6 @@ import SearchPage from './pages/SearchPage';
 import AppSettingsPage from './pages/AppSettingsPage';
 import ServerSettingsPage from './pages/ServerSettingsPage';
 import { Sidebar } from '@/components/sidebar';
-import { ServerProvider } from '@/context/server-context';
-import { TabsProvider } from '@/context/tabs-context';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,13 +35,9 @@ function AppLayout() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ServerProvider>
-        <TabsProvider>
-          <Router>
-            <AppLayout />
-          </Router>
-        </TabsProvider>
-      </ServerProvider>
+      <Router>
+        <AppLayout />
+      </Router>
     </QueryClientProvider>
   );
 }

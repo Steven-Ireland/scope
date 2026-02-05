@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
-import { useServer } from '@/context/server-context';
+import { useConfigStore } from '@/store/use-config-store';
 
 interface Field {
   name: string;
@@ -50,7 +50,9 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const lastRequestRef = React.useRef<number>(0);
-  const { activeServer } = useServer();
+  
+  const getActiveServer = useConfigStore(state => state.getActiveServer);
+  const activeServer = React.useMemo(() => getActiveServer(), [getActiveServer]);
 
   React.useEffect(() => {
     if (!index || !activeServer) return;

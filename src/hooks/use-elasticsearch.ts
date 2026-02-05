@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
-import { useServer } from '@/context/server-context';
+import { useConfigStore } from '@/store/use-config-store';
 import { DateRange } from 'react-day-picker';
 
 export function useIndices() {
-  const { activeServer } = useServer();
+  const getActiveServer = useConfigStore(state => state.getActiveServer);
+  const activeServer = getActiveServer();
 
   return useQuery({
     queryKey: ['indices', activeServer?.id],
@@ -14,7 +15,8 @@ export function useIndices() {
 }
 
 export function useFields(index: string) {
-  const { activeServer } = useServer();
+  const getActiveServer = useConfigStore(state => state.getActiveServer);
+  const activeServer = getActiveServer();
 
   return useQuery({
     queryKey: ['fields', activeServer?.id, index],
@@ -33,7 +35,8 @@ interface SearchParams {
 }
 
 export function useSearch(params: SearchParams) {
-  const { activeServer } = useServer();
+  const getActiveServer = useConfigStore(state => state.getActiveServer);
+  const activeServer = getActiveServer();
   const { index, query, dateRange, sortField, sortOrder } = params;
 
   return useQuery({

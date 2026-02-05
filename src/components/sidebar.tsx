@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Plus, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useServer } from '@/context/server-context';
-import { ServerConfig } from '@/types/server';
+import { useConfigStore } from '@/store/use-config-store';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -13,7 +12,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SERVER_COLORS } from '@/lib/constants';
 
 export function Sidebar() {
-  const { servers, activeServer, setActiveServerId, removeServer } = useServer();
+  const servers = useConfigStore(state => state.servers);
+  const activeServerId = useConfigStore(state => state.activeServerId);
+  const setActiveServerId = useConfigStore(state => state.setActiveServerId);
+  const removeServer = useConfigStore(state => state.removeServer);
+  
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -37,7 +40,7 @@ export function Sidebar() {
           // If we're not in settings (e.g. search), highlight the active one
           const isHighlighted = editingServerId 
             ? editingServerId === server.id
-            : activeServer?.id === server.id;
+            : activeServerId === server.id;
 
           return (
             <ContextMenu key={server.id}>

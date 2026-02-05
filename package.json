@@ -92,7 +92,8 @@
     "recharts": "^3.7.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
-    "undici": "^7.20.0"
+    "undici": "^7.20.0",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.2.0",

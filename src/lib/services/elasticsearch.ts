@@ -1,5 +1,5 @@
 import esClient from '@/lib/elasticsearch';
-import { estypes } from '@elastic/elasticsearch';
+import { estypes } from '@elastic/elasticsearch-8';
 
 export interface SearchParams {
   index: string;

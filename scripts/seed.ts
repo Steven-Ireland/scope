@@ -1,4 +1,4 @@
-import { Client } from '@elastic/elasticsearch';
+import { Client } from '@elastic/elasticsearch-8';
 import { faker } from '@faker-js/faker';
 import { subMinutes, subHours, subDays } from 'date-fns';
 

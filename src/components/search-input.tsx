@@ -50,6 +50,12 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const lastRequestRef = React.useRef<number>(0);
+  const currentValueRef = React.useRef(value);
+
+  // Keep the ref in sync with the value prop
+  React.useEffect(() => {
+    currentValueRef.current = value;
+  }, [value]);
   
   const getActiveServer = useConfigStore(state => state.getActiveServer);
   const activeServer = React.useMemo(() => getActiveServer(), [getActiveServer]);
@@ -147,18 +153,26 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
 
   const selectSuggestion = (suggestion: Suggestion) => {
     const cursorPosition = inputRef.current?.selectionStart || 0;
-    const textBeforeCursor = value.slice(0, cursorPosition);
-    const textAfterCursor = value.slice(cursorPosition);
+    const textBeforeCursor = currentValueRef.current.slice(0, cursorPosition);
+    const textAfterCursor = currentValueRef.current.slice(cursorPosition);
 
-    const words = textBeforeCursor.split(/(\s+)/);
-    const lastWord = words[words.length - 1];
+    // Split by whitespace to find the last word. 
+    // We use a regex that matches whitespace but keeps it in the result if we wanted, 
+    // but here we just want to know where the last word starts.
+    const lastWhitespaceIndex = textBeforeCursor.search(/\s\S*$/);
+    const lastWordStart = lastWhitespaceIndex === -1 ? 0 : lastWhitespaceIndex + 1;
+    const lastWord = textBeforeCursor.slice(lastWordStart);
 
     let newTextBefore = '';
     if (suggestion.kind === 'field') {
-      newTextBefore = textBeforeCursor.slice(0, -lastWord.length) + suggestion.value + ':';
+      // Replace the last word (or empty string if at a space) with the field name
+      const prefix = textBeforeCursor.slice(0, lastWordStart);
+      newTextBefore = prefix + suggestion.value + ':';
     } else {
+      // Replace the value part of field:value with the selected value
       const [fieldName] = lastWord.split(':');
-      newTextBefore = textBeforeCursor.slice(0, -lastWord.length) + fieldName + ':' + suggestion.value + ' ';
+      const prefix = textBeforeCursor.slice(0, lastWordStart);
+      newTextBefore = prefix + fieldName + ':' + suggestion.value + ' ';
     }
 
     const newValue = newTextBefore + textAfterCursor;
@@ -172,34 +186,41 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
         setIsOpen(false);
     }
 
-    setTimeout(() => {
-      inputRef.current?.focus();
-      inputRef.current?.setSelectionRange(newPos, newPos);
-    }, 0);
+    // Use requestAnimationFrame to ensure the DOM has updated and the cursor can be set correctly
+    requestAnimationFrame(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.setSelectionRange(newPos, newPos);
+      }
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      setIsOpen(false);
-      onSearch();
-      return;
-    }
-
     if (isOpen) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setActiveIndex(i => (i + 1) % suggestions.length);
+        return;
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setActiveIndex(i => (i - 1 + suggestions.length) % suggestions.length);
+        return;
       } else if (e.key === 'Escape') {
+        e.preventDefault();
         setIsOpen(false);
-      } else if (e.key === 'Tab') {
+        return;
+      } else if (e.key === 'Tab' || e.key === 'Enter') {
         if (activeIndex >= 0 && activeIndex < suggestions.length) {
           e.preventDefault();
           selectSuggestion(suggestions[activeIndex]);
+          return; // Crucial: return here so Enter doesn't trigger onSearch below
         }
       }
+    }
+
+    if (e.key === 'Enter') {
+      setIsOpen(false);
+      onSearch();
     }
   };
 

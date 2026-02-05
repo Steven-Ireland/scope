@@ -30,7 +30,30 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
   const index = activeTab?.index || '';
   const query = activeTab?.query || '';
   const dateRange = activeTab?.dateRange;
-  const sortField = activeTab?.sortField || '@timestamp';
+
+  // Data fetching with React Query
+  const { data: indices = EMPTY_ARRAY } = useIndices();
+  const { data: fields = EMPTY_ARRAY, isLoading: fieldsLoading } = useFields(index);
+
+  const timestampField = useMemo(() => {
+    if (fieldsLoading || fields.length === 0) return undefined;
+    const dateFields = fields
+      .filter((f: any) => f.type === 'date')
+      .map((f: any) => f.name)
+      .sort();
+    
+    return dateFields.length > 0 ? dateFields[0] : undefined;
+  }, [fields, fieldsLoading]);
+
+  const sortField = useMemo(() => {
+    if (activeTab?.sortField) return activeTab.sortField;
+    if (timestampField) return timestampField;
+    
+    // Fallback: first sortable field (not 'text' and not meta fields starting with _)
+    const firstSortable = fields.find((f: any) => f.type !== 'text' && !f.name.startsWith('_'));
+    return firstSortable?.name || '';
+  }, [activeTab?.sortField, timestampField, fields]);
+
   const sortOrder = activeTab?.sortOrder || 'desc';
 
   // Local state for the input field to allow typing without immediate store updates
@@ -62,14 +85,13 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
   }, [index, query, dateRange, tabId, setSelectedLog]);
 
   // Data fetching with React Query
-  const { data: indices = EMPTY_ARRAY } = useIndices();
-  const { data: fields = EMPTY_ARRAY, isLoading: fieldsLoading } = useFields(index);
   const { data: searchResults, isLoading: searchLoading } = useSearch({
     index,
     query,
     dateRange,
     sortField,
     sortOrder,
+    timestampField,
   });
 
   const logs = searchResults?.hits?.hits || EMPTY_ARRAY;
@@ -80,13 +102,13 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
     })) || EMPTY_ARRAY;
   }, [searchResults]);
 
-  const getDefaultColumns = useCallback((fieldsList: any[]) => {
-    if (fieldsList.length === 0) return ['@timestamp'];
+  const getDefaultColumns = useCallback((fieldsList: any[], tsField?: string) => {
+    if (fieldsList.length === 0) return tsField ? [tsField] : ['_source'];
     
-    // Pick dynamic defaults: @timestamp + first 4 non-meta fields
-    const defaults = fieldsList.some(f => f.name === '@timestamp') ? ['@timestamp'] : [];
+    // Pick dynamic defaults: primary timestamp + first 4 non-meta fields
+    const defaults = tsField && fieldsList.some(f => f.name === tsField) ? [tsField] : [];
     const others = fieldsList
-      .filter(f => f.name !== '@timestamp' && !f.name.startsWith('_'))
+      .filter(f => f.name !== tsField && !f.name.startsWith('_'))
       .slice(0, 4)
       .map(f => f.name);
     
@@ -98,9 +120,9 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
     if (!index) return EMPTY_ARRAY;
     const config = columnConfigs[index];
     if (config) return config;
-    if (fields.length > 0) return getDefaultColumns(fields);
-    return ['@timestamp'];
-  }, [index, columnConfigs, fields, getDefaultColumns]);
+    if (fields.length > 0) return getDefaultColumns(fields, timestampField);
+    return timestampField ? [timestampField] : ['_source'];
+  }, [index, columnConfigs, fields, getDefaultColumns, timestampField]);
 
   const handleToggleColumn = useCallback((col: string) => {
     if (!index) return;
@@ -110,13 +132,15 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
       next = current.filter((c) => c !== col);
     } else {
       next = [...current, col].sort((a, b) => {
-        if (a === '@timestamp') return -1;
-        if (b === '@timestamp') return 1;
+        if (timestampField) {
+          if (a === timestampField) return -1;
+          if (b === timestampField) return 1;
+        }
         return a.localeCompare(b);
       });
     }
     setColumnConfig(index, next);
-  }, [index, visibleColumns, setColumnConfig]);
+  }, [index, visibleColumns, setColumnConfig, timestampField]);
 
   const handleSaveDefaultColumns = useCallback(() => {
     // Already saved in store via setColumnConfig
@@ -124,9 +148,9 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
 
   const handleResetColumns = useCallback(() => {
     if (index) {
-      setColumnConfig(index, getDefaultColumns(fields));
+      setColumnConfig(index, getDefaultColumns(fields, timestampField));
     }
-  }, [index, fields, getDefaultColumns, setColumnConfig]);
+  }, [index, fields, getDefaultColumns, setColumnConfig, timestampField]);
 
   const handleSearch = useCallback(() => {
     handleUpdateSearch({ query: searchInput });

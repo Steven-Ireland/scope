@@ -155,7 +155,18 @@ const getClient = async (req) => {
 // Search endpoint
 app.post('/api/search', async (req, res) => {
   try {
-    const { index, query, from, to, offset = 0, size = 50, sortField, sortOrder, includeHistogram } = req.body;
+    const { 
+      index, 
+      query, 
+      from, 
+      to, 
+      offset = 0, 
+      size = 50, 
+      sortField, 
+      sortOrder, 
+      includeHistogram,
+      timestampField
+    } = req.body;
     
     if (!index) {
       return res.status(400).json({ error: 'Index is required' });
@@ -164,8 +175,8 @@ app.post('/api/search', async (req, res) => {
     const esClient = await getClient(req);
 
     const must = [];
-    if (from || to) {
-      must.push({ range: { '@timestamp': { gte: from, lte: to } } });
+    if (timestampField && (from || to)) {
+      must.push({ range: { [timestampField]: { gte: from, lte: to } } });
     }
     if (query) {
       must.push({ query_string: { query: query, default_field: '*' } });
@@ -174,8 +185,8 @@ app.post('/api/search', async (req, res) => {
     const sort = [];
     if (sortField) {
       sort.push({ [sortField]: { order: sortOrder || 'desc' } });
-    } else {
-      sort.push({ '@timestamp': { order: 'desc' } });
+    } else if (timestampField) {
+      sort.push({ [timestampField]: { order: 'desc' } });
     }
 
     const body = {
@@ -187,11 +198,11 @@ app.post('/api/search', async (req, res) => {
       sort,
     };
 
-    if (includeHistogram) {
+    if (includeHistogram && timestampField) {
       body.aggs = {
         histogram: {
           auto_date_histogram: {
-            field: '@timestamp',
+            field: timestampField,
             buckets: 60,
           },
         },

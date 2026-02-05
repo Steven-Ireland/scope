@@ -51,15 +51,16 @@ interface SearchParams {
   dateRange: DateRange | undefined;
   sortField: string;
   sortOrder: 'asc' | 'desc';
+  timestampField?: string;
 }
 
 export function useSearch(params: SearchParams) {
   const getActiveServer = useConfigStore(state => state.getActiveServer);
   const activeServer = getActiveServer();
-  const { index, query, dateRange, sortField, sortOrder } = params;
+  const { index, query, dateRange, sortField, sortOrder, timestampField } = params;
 
   return useQuery({
-    queryKey: ['search', activeServer?.id, index, query, dateRange?.from, dateRange?.to, sortField, sortOrder],
+    queryKey: ['search', activeServer?.id, index, query, dateRange?.from, dateRange?.to, sortField, sortOrder, timestampField],
     queryFn: () => apiClient.search({
       index,
       query,
@@ -67,6 +68,7 @@ export function useSearch(params: SearchParams) {
       to: dateRange?.to?.toISOString(),
       sortField,
       sortOrder,
+      timestampField,
       includeHistogram: true,
     }, activeServer!),
     enabled: !!activeServer && !!index,

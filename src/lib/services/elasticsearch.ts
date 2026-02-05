@@ -10,10 +10,21 @@ export interface SearchParams {
   size?: number;
   sortField?: string;
   sortOrder?: 'asc' | 'desc';
+  timestampField?: string;
 }
 
 export async function performSearch(params: SearchParams) {
-  const { index, query, from, to, offset = 0, size = 50, sortField, sortOrder } = params;
+  const { 
+    index, 
+    query, 
+    from, 
+    to, 
+    offset = 0, 
+    size = 50, 
+    sortField, 
+    sortOrder,
+    timestampField
+  } = params;
 
   if (!index) {
     throw new Error('Index is required');
@@ -21,10 +32,10 @@ export async function performSearch(params: SearchParams) {
 
   const must: estypes.QueryDslQueryContainer[] = [];
 
-  if (from || to) {
+  if (timestampField && (from || to)) {
     must.push({
       range: {
-        '@timestamp': {
+        [timestampField]: {
           gte: from,
           lte: to,
         },
@@ -44,8 +55,8 @@ export async function performSearch(params: SearchParams) {
   const sort: Record<string, { order: 'asc' | 'desc' }>[] = [];
   if (sortField) {
     sort.push({ [sortField]: { order: sortOrder || 'desc' } });
-  } else {
-    sort.push({ '@timestamp': { order: 'desc' } });
+  } else if (timestampField) {
+    sort.push({ [timestampField]: { order: 'desc' } });
   }
 
   return await esClient.search({

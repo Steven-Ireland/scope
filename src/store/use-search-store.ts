@@ -33,7 +33,7 @@ const createDefaultTab = (): SearchTab => ({
     from: startOfDay(addDays(new Date(), -1)),
     to: endOfDay(new Date()),
   },
-  sortField: '@timestamp',
+  sortField: '',
   sortOrder: 'desc',
 });
 

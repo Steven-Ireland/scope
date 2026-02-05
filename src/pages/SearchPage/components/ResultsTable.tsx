@@ -34,10 +34,14 @@ export function ResultsTable({
   selectedLogId,
   fields,
 }: ResultsTableProps) {
+  const isDateField = useCallback((field: string) => {
+    const fieldDef = fields.find((f) => f.name === field);
+    return fieldDef?.type === 'date';
+  }, [fields]);
+
   const isSortable = useCallback((field: string) => {
     const fieldDef = fields.find((f) => f.name === field);
-    if (!fieldDef) return field === '@timestamp';
-    return fieldDef.type !== 'text';
+    return fieldDef ? fieldDef.type !== 'text' : false;
   }, [fields]);
 
   return (
@@ -47,11 +51,12 @@ export function ResultsTable({
           <TableRow>
             {columns.map((col) => {
               const sortable = isSortable(col);
+              const isDate = isDateField(col);
               return (
                 <TableHead
                   key={col}
                   className={cn(
-                    col === '@timestamp' ? 'w-48' : '',
+                    isDate ? 'w-48' : '',
                     sortable ? 'cursor-pointer hover:bg-muted/50 transition-colors' : 'cursor-default'
                   )}
                   onClick={() => sortable && onSort(col)}
@@ -95,7 +100,7 @@ export function ResultsTable({
                 onClick={() => onSelectLog(log)}
               >
                 {columns.map((col) => (
-                  <TableCell key={col} className={col === '@timestamp' ? 'font-mono text-xs' : 'max-w-lg truncate'}>
+                  <TableCell key={col} className={isDateField(col) ? 'font-mono text-xs' : 'max-w-lg truncate'}>
                     {col === 'level' ? (
                       <span
                         className={cn(

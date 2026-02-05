@@ -33,14 +33,12 @@ const getClientConfig = (req) => {
   const config = {
     node: url,
     auth: (username && password) ? { username, password } : undefined,
-    agent: new Agent({
-      connect: {
-        rejectUnauthorized: false,
-        cert: certPath && fs.readFileSync(certPath) || undefined,
-        key: keyPath && fs.readFileSync(keyPath) || undefined,
-        checkServerIdentity: () => undefined,
-      }
-    })
+    ssl: {
+      rejectUnauthorized: false,
+      cert: certPath && fs.readFileSync(certPath) || undefined,
+      key: keyPath && fs.readFileSync(keyPath) || undefined,
+      checkServerIdentity: () => undefined,
+    }
   };
 
   return { config, url, majorVersion };

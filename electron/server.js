@@ -255,8 +255,8 @@ app.get('/api/fields', async (req, res) => {
         const property = properties[key];
         const type = property.type || 'object';
         
-        // Only add if not already present, or if we want to prefer certain types
-        if (!fieldsMap.has(fullPath)) {
+        // Only add leaf nodes (non-object types)
+        if (type !== 'object' && !fieldsMap.has(fullPath)) {
           fieldsMap.set(fullPath, { name: fullPath, type });
         }
         

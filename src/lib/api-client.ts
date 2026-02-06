@@ -30,12 +30,7 @@ const getHeaders = (server?: ServerConfig) => {
     'Content-Type': 'application/json',
   };
   if (server) {
-    headers['x-scope-url'] = server.url;
-    if (server.username) headers['x-scope-username'] = server.username;
-    if (server.password) headers['x-scope-password'] = server.password;
-    if (server.certPath) headers['x-scope-cert'] = server.certPath;
-    if (server.keyPath) headers['x-scope-key'] = server.keyPath;
-    if (server.majorVersion) headers['x-scope-version'] = String(server.majorVersion);
+    headers['x-scope-server-id'] = server.id;
   }
   return headers;
 };

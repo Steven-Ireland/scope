@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
+const path = require('path');
+const os = require('os');
 const { Client: Client8 } = require('@elastic/elasticsearch-8');
 const { Client: Client7 } = require('@elastic/elasticsearch-7');
 const { Client: Client9 } = require('@elastic/elasticsearch-9');
@@ -10,7 +12,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Cache for clients and their versions
+// Path to the shared config file (matches electron/main.js)
+const getContextPath = () => {
+  if (process.platform === 'darwin') {
+    return path.join(os.homedir(), 'Library', 'Application Support', 'scope');
+  }
+  if (process.platform === 'win32') {
+    return path.join(process.env.APPDATA, 'scope');
+  }
+  return path.join(os.homedir(), '.config', 'scope');
+};
+const CONFIG_PATH = path.join(getContextPath(), 'config.json');
+
+// Cache for clients and their versions: Map<serverId, { client, configHash, version, majorVersion }>
 const clientCache = new Map();
 
 const normalizeResponse = (response) => {
@@ -27,120 +41,121 @@ const normalizeResponse = (response) => {
   return response;
 };
 
+/**
+ * Loads the server configuration from disk and finds the specific server.
+ */
+const getServerConfig = (serverId) => {
+  try {
+    if (!fs.existsSync(CONFIG_PATH)) return null;
+    const data = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+    return data.servers.find((s) => s.id === serverId);
+  } catch (e) {
+    console.error('Failed to read config from disk:', e);
+    return null;
+  }
+};
+
+/**
+ * Creates a hash of the connection settings to detect changes.
+ */
+const getConfigHash = (s) => {
+  if (!s) return '';
+  return `${s.url}|${s.username}|${s.password}|${s.certPath}|${s.keyPath}|${s.allowInsecureSSL}`;
+};
+
 const getClientConfig = (req) => {
-  const url =
-    req.headers['x-scope-url'] || process.env.ELASTICSEARCH_URL || 'http://localhost:9200';
-  const username = req.headers['x-scope-username'];
-  const password = req.headers['x-scope-password'];
-  const certPath = req.headers['x-scope-cert'];
-  const keyPath = req.headers['x-scope-key'];
-  const majorVersion = req.headers['x-scope-version']
-    ? parseInt(req.headers['x-scope-version'])
-    : undefined;
+  const serverId = req.headers['x-scope-server-id'];
+  const server = getServerConfig(serverId);
+
+  if (!server) {
+    throw new Error(`Server config not found for ID: ${serverId}`);
+  }
 
   const config = {
-    node: url,
-    auth: username && password ? { username, password } : undefined,
+    node: server.url,
+    auth: server.username && server.password ? { username: server.username, password: server.password } : undefined,
     ssl: {
-      rejectUnauthorized: false,
-      cert: (certPath && fs.readFileSync(certPath)) || undefined,
-      key: (keyPath && fs.readFileSync(keyPath)) || undefined,
-      checkServerIdentity: () => undefined,
+      rejectUnauthorized: !server.allowInsecureSSL,
+      cert: (server.certPath && fs.readFileSync(server.certPath)) || undefined,
+      key: (server.keyPath && fs.readFileSync(server.keyPath)) || undefined,
+      checkServerIdentity: server.allowInsecureSSL ? () => undefined : undefined,
     },
   };
 
-  return { config, url, majorVersion };
+  return { 
+    config, 
+    url: server.url, 
+    serverId: server.id, 
+    hash: getConfigHash(server),
+    majorVersion: server.majorVersion
+  };
 };
 
 const getVersionedClient = async (req) => {
-  const { config, url, majorVersion: hintMajorVersion } = getClientConfig(req);
+  const { config, url, serverId, hash, majorVersion: hintMajorVersion } = getClientConfig(req);
 
-  if (clientCache.has(url)) {
-    const cached = clientCache.get(url);
-    // If we have a hint and it matches cached major version, use cached client
-    if (!hintMajorVersion || cached.majorVersion === hintMajorVersion) {
-      return cached.client;
-    }
-    // If hint is different, we'll re-detect or use the hint
-  }
-
-  if (hintMajorVersion) {
-    let client;
-    switch (hintMajorVersion) {
-      case 7:
-        client = new Client7(config);
-        break;
-      case 8:
-        client = new Client8(config);
-        break;
-      case 9:
-        client = new Client9(config);
-        break;
-      default:
-        console.warn(`Unknown hint major version: ${hintMajorVersion}, falling back to detection`);
-    }
-    if (client) {
-      // Still good to verify it works and get full version number
-      try {
-        const info = normalizeResponse(await client.info());
-        const versionNum = info.version.number;
-        clientCache.set(url, { client, version: versionNum, majorVersion: hintMajorVersion });
-        return client;
-      } catch (e) {
-        console.warn(
-          `Hinted client version ${hintMajorVersion} failed: ${e.message}, falling back to detection`
-        );
+  // If we have a cached client, check if it's still valid
+  if (clientCache.has(serverId)) {
+    const cached = clientCache.get(serverId);
+    if (cached.configHash === hash) {
+      // If we have a version hint, ensure it matches
+      if (!hintMajorVersion || cached.majorVersion === hintMajorVersion) {
+        return cached.client;
       }
     }
+    // Config changed or version mismatch, remove old client
+    clientCache.delete(serverId);
   }
 
-  const clientVersions = [
-    { Client: Client7, version: 7 },
-    { Client: Client8, version: 8 },
-    { Client: Client9, version: 9 },
+  // Helper to create and verify a client
+  const tryCreateClient = async (Client, major) => {
+    const client = new Client(config);
+    const info = normalizeResponse(await client.info());
+    const versionNum = info.version.number;
+    const detectedMajor = parseInt(versionNum.split('.')[0]);
+    
+    const entry = { client, configHash: hash, version: versionNum, majorVersion: detectedMajor };
+    clientCache.set(serverId, entry);
+    return client;
+  };
+
+  // 1. Try hinted version first
+  if (hintMajorVersion) {
+    try {
+      const Client = { 7: Client7, 8: Client8, 9: Client9 }[hintMajorVersion];
+      if (Client) return await tryCreateClient(Client, hintMajorVersion);
+    } catch (e) {
+      console.warn(`Hinted client v${hintMajorVersion} failed for ${url}, auto-detecting...`);
+    }
+  }
+
+  // 2. Auto-detection loop
+  const versions = [
+    { Client: Client8, v: 8 },
+    { Client: Client7, v: 7 },
+    { Client: Client9, v: 9 },
   ];
 
-  for (const { Client, version: clientMajor } of clientVersions) {
+  for (const { Client, v } of versions) {
     try {
-      const tempClient = new Client(config);
-      const info = normalizeResponse(await tempClient.info());
-      const versionNum = info.version.number;
-      const majorVersion = parseInt(versionNum.split('.')[0]);
-
-      let client;
-      switch (majorVersion) {
-        case 7:
-          client = new Client7(config);
-          break;
-        case 8:
-          client = new Client8(config);
-          break;
-        case 9:
-          client = new Client9(config);
-          break;
-        default:
-          throw new Error(`Unknown client version: ${majorVersion}`);
-      }
-
-      clientCache.set(url, { client, version: versionNum, majorVersion });
-      return client;
-    } catch (error) {
-      console.warn(`ES version detection attempt with Client${clientMajor} failed:`, error.message);
+      return await tryCreateClient(Client, v);
+    } catch (e) {
+      console.warn(`ES detection: v${v} failed for ${url}`);
     }
   }
 
-  throw new Error('Failed to connect to Elasticsearch');
+  throw new Error(`Failed to connect to Elasticsearch at ${url}`);
 };
 
 // Verify server endpoint
 app.get('/api/verify-server', async (req, res) => {
-  const { url } = getClientConfig(req);
+  const serverId = req.headers['x-scope-server-id'];
   try {
-    // Clear cache to force re-detection on verify
-    clientCache.delete(url);
+    // Force recreation on verify
+    if (serverId) clientCache.delete(serverId);
 
     const client = await getVersionedClient(req);
-    const cached = clientCache.get(url);
+    const cached = clientCache.get(serverId || 'default');
 
     const result = await client.info();
     const info = normalizeResponse(result);

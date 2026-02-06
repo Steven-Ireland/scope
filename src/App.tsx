@@ -93,9 +93,7 @@ function TitleBar() {
           </div>
         )}
         {!isSearchPage && (
-          <div className="px-4 text-xs font-medium text-muted-foreground flex items-center h-full drag pb-2">
-            Scope Settings
-          </div>
+          <div className="px-4 text-xs font-medium text-muted-foreground flex items-center h-full drag pb-2" />
         )}
       </div>
       <div className="h-full flex items-center">

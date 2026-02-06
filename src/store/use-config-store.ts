@@ -11,7 +11,7 @@ interface ConfigState {
   // Actions
   setServers: (servers: ServerConfig[]) => void;
   setActiveServerId: (id: string | null) => void;
-  addServer: (server: Omit<ServerConfig, 'id'>) => void;
+  addServer: (server: Omit<ServerConfig, 'id'>) => ServerConfig;
   updateServer: (id: string, updates: Partial<ServerConfig>) => void;
   removeServer: (id: string) => void;
   setLoaded: (loaded: boolean) => void;
@@ -43,6 +43,7 @@ export const useConfigStore = create<ConfigState>()(
           servers: [...state.servers, newServer],
           activeServerId: newServer.id,
         }));
+        return newServer;
       },
 
       updateServer: (id, updates) => {

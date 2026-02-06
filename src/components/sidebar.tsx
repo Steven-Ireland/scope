@@ -21,6 +21,7 @@ export function Sidebar() {
   const activeServerId = useConfigStore((state) => state.activeServerId);
   const setActiveServerId = useConfigStore((state) => state.setActiveServerId);
   const removeServer = useConfigStore((state) => state.removeServer);
+  const addServer = useConfigStore((state) => state.addServer);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -33,6 +34,16 @@ export function Sidebar() {
     if (!location.pathname.startsWith('/search')) {
       navigate('/search');
     }
+  };
+
+  const handleAddServer = () => {
+    const newServer = addServer({
+      name: 'New Server',
+      url: 'http://localhost:9200',
+      color: SERVER_COLORS[Math.floor(Math.random() * SERVER_COLORS.length)].bg,
+      indexPatterns: [],
+    });
+    navigate(`/settings/server/${newServer.id}`);
   };
 
   return (
@@ -99,12 +110,10 @@ export function Sidebar() {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={() => navigate('/settings/server/new')}
+              onClick={handleAddServer}
               className={cn(
                 'flex items-center justify-center w-10 h-10 rounded-[20px] transition-all duration-200 hover:rounded-[12px]',
-                editingServerId === 'new'
-                  ? 'bg-nord14 text-nord0 rounded-[12px]'
-                  : 'bg-muted text-nord14 hover:bg-nord14 hover:text-nord0'
+                'bg-muted text-nord14 hover:bg-nord14 hover:text-nord0'
               )}
             >
               <Plus className="w-5 h-5" />

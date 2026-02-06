@@ -7,6 +7,7 @@ export interface ServerConfig {
   color?: string;
   certPath?: string;
   keyPath?: string;
+  allowInsecureSSL?: boolean;
   majorVersion?: number;
   indexPatterns?: string[];
 }

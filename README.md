@@ -8,7 +8,7 @@
 
 - **Desktop & Web**: Run as a standalone Electron app or in your browser.
 - **Index Discovery & Patterns**: Automatically fetches indices and supports custom patterns (e.g., `logs-*`) for grouping.
-- **Persistent Search Tabs**: Open multiple searches simultaneously; tabs are saved across sessions.
+- **Persistent Search Tabs**: Open multiple searches simultaneously; tabs are saved across sessions. Supports custom naming and drag-and-drop reordering.
 - **Multi-Version Support**: Seamlessly connects to Elasticsearch 7.x, 8.x, and 9.x clusters.
 - **Smart Autocomplete**: Real-time suggestions for field names and values.
 - **Visualizations**: Built-in date histogram with automatic scaling to see event spikes and trends.

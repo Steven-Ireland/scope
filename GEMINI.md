@@ -12,7 +12,7 @@
 ## Key Features
 
 1.  **Index Discovery & Patterns**: Automatically fetches indices and supports custom index patterns (e.g., `logs-*`) for grouping date-based indices.
-2.  **Persistent Search Tabs**: Supports multiple concurrent search sessions with state persistence (index, query, filters, and columns) across restarts.
+2.  **Persistent Search Tabs**: Supports multiple concurrent search sessions with state persistence (index, query, filters, and columns) across restarts. Supports custom tab naming and drag-and-drop reordering.
 3.  **Column Management**: Interactive column selector to toggle visibility and drag-to-reorder fields for customized data views.
 4.  **Flexible Time Ranges**: Support for both absolute date ranges and relative time offsets (e.g., "Last 15 minutes").
 5.  **Smart Autocomplete**: Search bar suggests field names and values based on the active index's mapping.
@@ -33,7 +33,7 @@
 - **Routing**: React Router v7
 - **Styling**: Tailwind CSS v4 (Nord theme)
 - **Components**: Radix UI primitives & Lucide icons
-- **Drag & Drop**: dnd-kit (for column reordering)
+- **Drag & Drop**: dnd-kit (for column and tab reordering)
 - **Visualizations**: Recharts
 
 ### Backend / Desktop

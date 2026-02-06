@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
 import { format } from 'date-fns';
 
@@ -47,7 +47,9 @@ export function DateHistogram({ data, onRangeSelect }: DateHistogramProps) {
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
+    if (!isSelecting) return;
+
     setIsSelecting(false);
     if (refAreaLeft !== null && refAreaRight !== null) {
       const start = Math.min(refAreaLeft, refAreaRight);
@@ -62,7 +64,16 @@ export function DateHistogram({ data, onRangeSelect }: DateHistogramProps) {
     }
     setRefAreaLeft(null);
     setRefAreaRight(null);
-  };
+  }, [isSelecting, refAreaLeft, refAreaRight, data, onRangeSelect]);
+
+  useEffect(() => {
+    if (isSelecting) {
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isSelecting, handleMouseUp]);
 
   if (!data || data.length === 0) return null;
 

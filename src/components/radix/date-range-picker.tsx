@@ -132,7 +132,9 @@ export function DatePickerWithRange({
     }
   };
 
-  const handleDayPointerUp = () => {
+  const handleDayPointerUp = React.useCallback(() => {
+    if (!isDragging) return;
+
     setIsDragging(false);
 
     if (date?.from) {
@@ -144,7 +146,16 @@ export function DatePickerWithRange({
     }
 
     setDragStart(null);
-  };
+  }, [isDragging, date, setDate]);
+
+  React.useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mouseup', handleDayPointerUp);
+      return () => {
+        window.removeEventListener('mouseup', handleDayPointerUp);
+      };
+    }
+  }, [isDragging, handleDayPointerUp]);
 
   return (
     <div className={className}>

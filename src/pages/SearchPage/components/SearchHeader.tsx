@@ -161,143 +161,140 @@ export function SearchHeader({
   const unselectedFields = fields.filter((f) => !visibleColumns.includes(f.name));
 
   return (
-    <header className="border-b p-4 flex flex-col md:flex-row md:items-center gap-4 bg-background shrink-0">
-      <div className="flex items-center gap-2">
-        <Select value={selectedIndex} onValueChange={onIndexChange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select Index" />
-          </SelectTrigger>
-          <SelectContent>
-            {indices.map((idx) => (
-              <SelectItem key={idx.index} value={idx.index}>
-                {idx.index}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <header className="border-b p-2 flex items-center gap-2 bg-background shrink-0">
+      <Select value={selectedIndex} onValueChange={onIndexChange}>
+        <SelectTrigger className="w-fit">
+          <SelectValue placeholder="Select Index" />
+        </SelectTrigger>
+        <SelectContent position="popper" align="start">
+          {indices.map((idx) => (
+            <SelectItem key={idx.index} value={idx.index}>
+              {idx.index}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="gap-2 shrink-0">
-              <Columns className="h-4 w-4" />
-              <span className="hidden lg:inline">Columns</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-fit min-w-64 p-0 flex flex-col max-h-[500px]" align="start">
-            <div className="p-3 border-b flex flex-col gap-2 shrink-0">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium text-sm">Configurable Columns</h4>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={onResetColumns}
-                  title="Reset to default"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                </Button>
-              </div>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Search fields..."
-                  className="pl-8 h-8 text-xs"
-                  value={columnSearch}
-                  onChange={(e) => setColumnSearch(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-1">
-              {fieldsLoading ? (
-                <div className="p-4 text-center text-xs text-muted-foreground animate-pulse">
-                  Loading fields...
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {visibleColumns.length > 0 && !columnSearch && (
-                    <div className="space-y-1">
-                      <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-                        Active Columns (Drag to reorder)
-                      </div>
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <SortableContext
-                          items={visibleColumns}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          {selectedFields.map((f) => (
-                            <SortableItem
-                              key={f.name}
-                              id={f.name}
-                              name={f.name}
-                              type={f.type}
-                              selected={true}
-                              onToggle={() => onToggleColumn(f.name)}
-                            />
-                          ))}
-                        </SortableContext>
-                      </DndContext>
-                    </div>
-                  )}
-
-                  <div className="space-y-1">
-                    <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-                      {columnSearch ? 'Search Results' : 'Available Fields'}
-                    </div>
-                    {unselectedFields
-                      .filter(
-                        (f) =>
-                          !columnSearch || f.name.toLowerCase().includes(columnSearch.toLowerCase())
-                      )
-                      .map((f) => (
-                        <button
-                          key={f.name}
-                          onClick={() => onToggleColumn(f.name)}
-                          className={cn(
-                            'w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-sm hover:bg-muted transition-colors text-left group',
-                            'text-muted-foreground'
-                          )}
-                        >
-                          <div className="w-4 shrink-0" /> {/* Spacer for drag handle alignment */}
-                          <div
-                            className={cn(
-                              'h-3.5 w-3.5 border rounded-sm flex items-center justify-center shrink-0',
-                              'border-muted-foreground/30'
-                            )}
-                          >
-                            {/* Unselected, so no check */}
-                          </div>
-                          <span className="whitespace-nowrap flex-1 text-left">{f.name}</span>
-                          <span className="text-[10px] opacity-50 px-1">{f.type}</span>
-                        </button>
-                      ))}
-                    {unselectedFields.filter(
-                      (f) =>
-                        !columnSearch || f.name.toLowerCase().includes(columnSearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="p-4 text-center text-xs text-muted-foreground">
-                        No fields found.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="p-2 border-t bg-muted/50 flex justify-end shrink-0">
-              <Button size="sm" className="h-8 text-xs w-full" onClick={onSaveDefaultColumns}>
-                Set as Default for {selectedIndex}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="icon" className="shrink-0" title="Configure Columns">
+            <Columns className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-fit min-w-64 p-0 flex flex-col max-h-[500px]" align="start">
+          <div className="p-3 border-b flex flex-col gap-2 shrink-0">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-sm">Configurable Columns</h4>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={onResetColumns}
+                title="Reset to default"
+              >
+                <RotateCcw className="h-3 w-3" />
               </Button>
             </div>
-          </PopoverContent>
-        </Popover>
-      </div>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search fields..."
+                className="pl-8 h-8 text-xs"
+                value={columnSearch}
+                onChange={(e) => setColumnSearch(e.target.value)}
+              />
+            </div>
+          </div>
 
-      <div className="w-full md:flex-1">
+          <div className="flex-1 overflow-y-auto p-1">
+            {fieldsLoading ? (
+              <div className="p-4 text-center text-xs text-muted-foreground animate-pulse">
+                Loading fields...
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {visibleColumns.length > 0 && !columnSearch && (
+                  <div className="space-y-1">
+                    <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                      Active Columns (Drag to reorder)
+                    </div>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext
+                        items={visibleColumns}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {selectedFields.map((f) => (
+                          <SortableItem
+                            key={f.name}
+                            id={f.name}
+                            name={f.name}
+                            type={f.type}
+                            selected={true}
+                            onToggle={() => onToggleColumn(f.name)}
+                          />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                    {columnSearch ? 'Search Results' : 'Available Fields'}
+                  </div>
+                  {unselectedFields
+                    .filter(
+                      (f) =>
+                        !columnSearch || f.name.toLowerCase().includes(columnSearch.toLowerCase())
+                    )
+                    .map((f) => (
+                      <button
+                        key={f.name}
+                        onClick={() => onToggleColumn(f.name)}
+                        className={cn(
+                          'w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-sm hover:bg-muted transition-colors text-left group',
+                          'text-muted-foreground'
+                        )}
+                      >
+                        <div className="w-4 shrink-0" /> {/* Spacer for drag handle alignment */}
+                        <div
+                          className={cn(
+                            'h-3.5 w-3.5 border rounded-sm flex items-center justify-center shrink-0',
+                            'border-muted-foreground/30'
+                          )}
+                        >
+                          {/* Unselected, so no check */}
+                        </div>
+                        <span className="whitespace-nowrap flex-1 text-left">{f.name}</span>
+                        <span className="text-[10px] opacity-50 px-1">{f.type}</span>
+                      </button>
+                    ))}
+                  {unselectedFields.filter(
+                    (f) =>
+                      !columnSearch || f.name.toLowerCase().includes(columnSearch.toLowerCase())
+                  ).length === 0 && (
+                    <div className="p-4 text-center text-xs text-muted-foreground">
+                      No fields found.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-2 border-t bg-muted/50 flex justify-end shrink-0">
+            <Button size="sm" className="h-8 text-xs w-full" onClick={onSaveDefaultColumns}>
+              Set as Default for {selectedIndex}
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <div className="flex-1">
         <SearchInput
           placeholder="Search..."
           value={searchQuery}
@@ -307,18 +304,16 @@ export function SearchHeader({
         />
       </div>
 
-      <div className="flex items-center gap-2">
-        <DatePickerWithRange
-          date={dateRange}
-          setDate={onDateRangeChange}
-          relativeRange={relativeRange}
-          onRelativeRangeChange={onRelativeRangeChange}
-          rangeMode={rangeMode}
-        />
-        <Button className="w-full md:w-auto shrink-0" onClick={onSearch} disabled={loading}>
-          Search
-        </Button>
-      </div>
+      <DatePickerWithRange
+        date={dateRange}
+        setDate={onDateRangeChange}
+        relativeRange={relativeRange}
+        onRelativeRangeChange={onRelativeRangeChange}
+        rangeMode={rangeMode}
+      />
+      <Button className="shrink-0" onClick={onSearch} disabled={loading}>
+        Search
+      </Button>
     </header>
   );
 }

@@ -143,22 +143,22 @@ export function DatePickerWithRange({
   };
 
   return (
-    <div className={cn('grid gap-2', className)}>
+    <div className={className}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
             variant={'outline'}
             className={cn(
-              'w-[260px] justify-start text-left font-normal truncate',
+              'w-fit justify-start text-left font-normal truncate gap-2',
 
               rangeMode === 'absolute' && !date && 'text-muted-foreground'
             )}
           >
             {rangeMode === 'relative' ? (
-              <Clock className="mr-2 h-4 w-4" />
+              <Clock className="h-4 w-4" />
             ) : (
-              <CalendarIcon className="mr-2 h-4 w-4" />
+              <CalendarIcon className="h-4 w-4" />
             )}
 
             {rangeMode === 'relative' ? (

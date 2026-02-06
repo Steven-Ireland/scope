@@ -47,8 +47,8 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex flex-col w-14 border-r bg-background h-full items-center py-4 shrink-0 gap-4">
-      <div className="flex flex-col gap-3 w-full items-center overflow-y-auto flex-1 no-scrollbar">
+    <div className="flex flex-col w-14 border-r bg-background h-full items-center p-2 shrink-0 gap-2">
+      <div className="flex flex-col gap-2 w-full items-center overflow-y-auto flex-1 no-scrollbar">
         {servers.map((server) => {
           const colorConfig = SERVER_COLORS.find((c) => c.bg === server.color) || SERVER_COLORS[0];
 
@@ -123,7 +123,7 @@ export function Sidebar() {
         </Tooltip>
       </div>
 
-      <div className="flex flex-col gap-4 mt-auto items-center">
+      <div className="flex flex-col gap-2 mt-auto items-center">
         <Tooltip>
           <TooltipTrigger asChild>
             <Link

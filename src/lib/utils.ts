@@ -42,3 +42,13 @@ export const isElectron = () => {
     (window as any).process?.versions?.electron !== undefined
   );
 };
+
+export function getTimestampField(
+  visibleColumns: string[],
+  allDateFields: string[],
+  fallbackTimestampField?: string
+): string | undefined {
+  if (allDateFields.length === 0) return undefined;
+  const selectedDateField = visibleColumns.find(col => allDateFields.includes(col));
+  return selectedDateField || fallbackTimestampField;
+}

@@ -105,7 +105,14 @@ export const useSearchStore = create<SearchState>()(
             return tab.dateRange?.from?.getTime() !== newRange?.from?.getTime() ||
                    tab.dateRange?.to?.getTime() !== newRange?.to?.getTime();
           }
-          return tab[k] !== value;
+          if (k === 'columns' && Array.isArray(value) && Array.isArray(tab.columns)) {
+            if (value.length !== tab.columns.length) return true;
+            return value.some((v, i) => v !== tab.columns?.[i]);
+          }
+          if (k === 'columns' && (Array.isArray(value) !== Array.isArray(tab.columns))) {
+            return true;
+          }
+          return (tab as any)[k] !== value;
         });
 
         if (!hasChanged) return;

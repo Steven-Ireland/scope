@@ -120,6 +120,7 @@ async function seedLogs(client: Client) {
       mappings: {
         properties: {
           '@timestamp': { type: 'date' },
+          event_time: { type: 'date' },
           level: { type: 'keyword' },
           message: { type: 'text' },
           service: { type: 'keyword' },
@@ -155,10 +156,16 @@ async function seedLogs(client: Client) {
         from: subDays(new Date(), 7),
         to: new Date(),
       });
+      // event_time is now completely independent and can be from a wider range
+      const eventTime = faker.date.between({
+        from: subDays(new Date(), 30),
+        to: new Date(),
+      });
 
       body.push({ index: { _index: LOGS_INDEX } });
       body.push({
         '@timestamp': timestamp.toISOString(),
+        event_time: eventTime.toISOString(),
         level: faker.helpers.arrayElement(levels),
         message: faker.hacker.phrase(),
         service: faker.helpers.arrayElement(services),

@@ -8,7 +8,7 @@ import { LogEntry } from '@/types/elasticsearch';
 import { SearchTabs } from '@/components/search-tabs';
 import { useConfigStore } from '@/store/use-config-store';
 import { useSearchStore } from '@/store/use-search-store';
-import { cn } from '@/lib/utils';
+import { cn, getTimestampField } from '@/lib/utils';
 import { SearchTab } from '@/types/search-tab';
 import { DateRange } from 'react-day-picker';
 
@@ -16,7 +16,8 @@ const EMPTY_ARRAY: any[] = [];
 
 function SearchContent({ tabId, serverId }: { tabId: string, serverId: string }) {
   const tabs = useSearchStore(state => state.tabs[serverId] || EMPTY_ARRAY);
-  const activeTab = useMemo(() => tabs.find(t => t.id === tabId) || tabs[0] || null, [tabs, tabId]);
+  const activeTabId = useSearchStore(state => state.activeTabIds[serverId]);
+  const activeTab = useMemo(() => tabs.find(t => t.id === tabId) || null, [tabs, tabId]);
   
   const updateTab = useSearchStore(state => state.updateTab);
 
@@ -35,15 +36,44 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
   const { data: indices = EMPTY_ARRAY } = useIndices();
   const { data: fields = EMPTY_ARRAY, isLoading: fieldsLoading } = useFields(index);
 
+  const allDateFields = useMemo(() => {
+    return fields
+      .filter((f: any) => f.type === 'date' || f.type === 'date_nanos')
+      .map((f: any) => f.name);
+  }, [fields]);
+
+  const fallbackTimestampField = useMemo(() => {
+    if (allDateFields.length === 0) return undefined;
+    return [...allDateFields].sort()[0];
+  }, [allDateFields]);
+
+  const getDefaultColumns = useCallback((fieldsList: any[], tsField?: string) => {
+    if (fieldsList.length === 0) return tsField ? [tsField] : ['_source'];
+    
+    // Pick dynamic defaults: primary timestamp + first 4 non-meta fields
+    const defaults = tsField && fieldsList.some(f => f.name === tsField) ? [tsField] : [];
+    const others = fieldsList
+      .filter(f => f.name !== tsField && !f.name.startsWith('_'))
+      .slice(0, 4)
+      .map(f => f.name);
+    
+    const combined = [...defaults, ...others];
+    return combined.length > 0 ? combined : ['_source'];
+  }, []);
+
+  const visibleColumns = useMemo(() => {
+    if (!index) return EMPTY_ARRAY;
+    if (activeTab?.columns && activeTab.columns.length > 0) return activeTab.columns;
+    const config = columnConfigs[index];
+    if (config) return config;
+    if (fields.length > 0) return getDefaultColumns(fields, fallbackTimestampField);
+    return fallbackTimestampField ? [fallbackTimestampField] : ['_source'];
+  }, [index, activeTab?.columns, columnConfigs, fields, getDefaultColumns, fallbackTimestampField]);
+
   const timestampField = useMemo(() => {
     if (fieldsLoading || fields.length === 0) return undefined;
-    const dateFields = fields
-      .filter((f: any) => f.type === 'date')
-      .map((f: any) => f.name)
-      .sort();
-    
-    return dateFields.length > 0 ? dateFields[0] : undefined;
-  }, [fields, fieldsLoading]);
+    return getTimestampField(visibleColumns, allDateFields, fallbackTimestampField);
+  }, [visibleColumns, allDateFields, fallbackTimestampField, fieldsLoading, fields.length]);
 
   const sortField = useMemo(() => {
     if (activeTab?.sortField) return activeTab.sortField;
@@ -101,29 +131,6 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
       count: b.doc_count,
     })) || EMPTY_ARRAY;
   }, [searchResults]);
-
-  const getDefaultColumns = useCallback((fieldsList: any[], tsField?: string) => {
-    if (fieldsList.length === 0) return tsField ? [tsField] : ['_source'];
-    
-    // Pick dynamic defaults: primary timestamp + first 4 non-meta fields
-    const defaults = tsField && fieldsList.some(f => f.name === tsField) ? [tsField] : [];
-    const others = fieldsList
-      .filter(f => f.name !== tsField && !f.name.startsWith('_'))
-      .slice(0, 4)
-      .map(f => f.name);
-    
-    const combined = [...defaults, ...others];
-    return combined.length > 0 ? combined : ['_source'];
-  }, []);
-
-  const visibleColumns = useMemo(() => {
-    if (!index) return EMPTY_ARRAY;
-    if (activeTab?.columns && activeTab.columns.length > 0) return activeTab.columns;
-    const config = columnConfigs[index];
-    if (config) return config;
-    if (fields.length > 0) return getDefaultColumns(fields, timestampField);
-    return timestampField ? [timestampField] : ['_source'];
-  }, [index, activeTab?.columns, columnConfigs, fields, getDefaultColumns, timestampField]);
 
   const handleToggleColumn = useCallback((col: string) => {
     if (!index) return;

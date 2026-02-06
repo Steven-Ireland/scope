@@ -1,5 +1,36 @@
 import { describe, it, expect } from 'vitest';
-import { getValueByPath, flattenObject } from './utils';
+import { getValueByPath, flattenObject, getTimestampField } from './utils';
+
+describe('getTimestampField', () => {
+  const allDateFields = ['@timestamp', 'event_time', 'created_at'];
+  const fallback = '@timestamp';
+
+  it('should return the first visible date field', () => {
+    const visibleColumns = ['message', 'event_time', '@timestamp'];
+    expect(getTimestampField(visibleColumns, allDateFields, fallback)).toBe('event_time');
+  });
+
+  it('should return the fallback if no date field is visible', () => {
+    const visibleColumns = ['message', 'level', 'user'];
+    expect(getTimestampField(visibleColumns, allDateFields, fallback)).toBe(fallback);
+  });
+
+  it('should return undefined if there are no date fields at all', () => {
+    expect(getTimestampField(['message'], [], fallback)).toBe(undefined);
+  });
+
+  it('should prefer the first date field in visibleColumns regardless of alphabetical order', () => {
+    const visibleColumns = ['created_at', 'event_time'];
+    expect(getTimestampField(visibleColumns, allDateFields, fallback)).toBe('created_at');
+    
+    const visibleColumns2 = ['event_time', 'created_at'];
+    expect(getTimestampField(visibleColumns2, allDateFields, fallback)).toBe('event_time');
+  });
+
+  it('should return the fallback if visibleColumns is empty', () => {
+    expect(getTimestampField([], allDateFields, fallback)).toBe(fallback);
+  });
+});
 
 describe('getValueByPath', () => {
   it('should get a top-level value', () => {

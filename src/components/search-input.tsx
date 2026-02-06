@@ -178,6 +178,7 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
   };
 
   const selectSuggestion = (suggestion: Suggestion) => {
+    setActiveIndex(-1);
     const cursorPosition = inputRef.current?.selectionStart || 0;
     const textBeforeCursor = currentValueRef.current.slice(0, cursorPosition);
     const textAfterCursor = currentValueRef.current.slice(cursorPosition);
@@ -350,7 +351,6 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
                   index === activeIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent hover:text-accent-foreground'
                 )}
                 onClick={() => selectSuggestion(suggestion)}
-                onMouseEnter={() => setActiveIndex(index)}
               >
                 <span className={suggestion.kind === 'value' ? 'font-medium' : 'font-mono'}>
                   {suggestion.label}

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { LogEntry } from '@/types/elasticsearch';
 import { flattenObject } from '@/lib/utils';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 
 interface DocumentDetailsProps {
   log: LogEntry;
@@ -12,6 +12,17 @@ interface DocumentDetailsProps {
 
 export function DocumentDetails({ log, onClose }: DocumentDetailsProps) {
   const flattenedSource = useMemo(() => flattenObject(log._source), [log._source]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   return (
     <div className="h-full flex flex-col min-w-0">

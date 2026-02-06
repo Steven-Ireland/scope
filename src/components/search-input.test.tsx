@@ -297,4 +297,93 @@ describe('SearchInput Autocomplete', () => {
 
     expect(mockOnSearch).toHaveBeenCalled();
   });
+
+  it('should trigger search with Enter even after hovering over a suggestion', async () => {
+    await act(async () => {
+      render(
+        <SearchInput
+          value="mes"
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+          index="logs"
+          placeholder="Search..."
+        />
+      );
+    });
+
+    const input = screen.getByPlaceholderText('Search...') as HTMLInputElement;
+    await act(async () => {
+      input.focus();
+      input.setSelectionRange(3, 3);
+    });
+
+    await act(async () => {
+      await Promise.resolve(); 
+    });
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'mes' } });
+    });
+
+    const suggestion = await screen.findByText('message');
+
+    // Hover over the suggestion
+    await act(async () => {
+      fireEvent.mouseEnter(suggestion);
+    });
+
+    // Press Enter
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'Enter' });
+    });
+
+    // Should NOT call onChange with suggestion, but SHOULD call onSearch
+    expect(mockOnChange).not.toHaveBeenCalledWith('message:');
+    expect(mockOnSearch).toHaveBeenCalled();
+  });
+
+  it('should trigger search with Enter after clicking a suggestion', async () => {
+    await act(async () => {
+      render(
+        <SearchInput
+          value="mes"
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+          index="logs"
+          placeholder="Search..."
+        />
+      );
+    });
+
+    const input = screen.getByPlaceholderText('Search...') as HTMLInputElement;
+    await act(async () => {
+      input.focus();
+      input.setSelectionRange(3, 3);
+    });
+
+    await act(async () => {
+      await Promise.resolve(); 
+    });
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'mes' } });
+    });
+
+    const suggestion = await screen.findByText('message');
+
+    // Click the suggestion
+    await act(async () => {
+      fireEvent.click(suggestion);
+    });
+
+    expect(mockOnChange).toHaveBeenCalledWith('message:');
+    mockOnChange.mockClear();
+
+    // Now press Enter
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'Enter' });
+    });
+
+    expect(mockOnSearch).toHaveBeenCalled();
+  });
 });

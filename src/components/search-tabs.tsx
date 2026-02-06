@@ -1,6 +1,7 @@
 import { Plus, X } from 'lucide-react';
 import { SearchTab } from '@/types/search-tab';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/radix/tooltip';
 
 interface SearchTabsProps {
   tabs: SearchTab[];
@@ -57,13 +58,17 @@ export function SearchTabs({
           </button>
         </div>
       ))}
-      <button
-        onClick={onTabAdd}
-        className="p-1.5 mb-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors no-drag"
-        title="New Search Tab"
-      >
-        <Plus className="h-4 w-4" />
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={onTabAdd}
+            className="p-1.5 mb-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors no-drag"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">New Search Tab</TooltipContent>
+      </Tooltip>
     </div>
   );
 }

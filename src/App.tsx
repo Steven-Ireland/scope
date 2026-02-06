@@ -8,6 +8,7 @@ import { WindowControls } from '@/components/window-controls';
 import { SearchTabs } from '@/components/search-tabs';
 import { useConfigStore } from '@/store/use-config-store';
 import { useSearchStore } from '@/store/use-search-store';
+import { TooltipProvider } from '@/components/radix/tooltip';
 import { useMemo, useCallback } from 'react';
 
 const queryClient = new QueryClient({
@@ -110,9 +111,11 @@ function AppLayout() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <AppLayout />
-      </Router>
+      <TooltipProvider>
+        <Router>
+          <AppLayout />
+        </Router>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

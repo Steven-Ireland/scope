@@ -13,11 +13,14 @@
 
 1.  **Index Discovery & Patterns**: Automatically fetches indices and supports custom index patterns (e.g., `logs-*`) for grouping date-based indices.
 2.  **Persistent Search Tabs**: Supports multiple concurrent search sessions with state persistence (index, query, filters, and columns) across restarts.
-3.  **Smart Autocomplete**: Search bar suggests field names and values based on the active index's mapping.
-4.  **Multi-Version Support**: Dynamic detection and support for Elasticsearch 7.x, 8.x, and 9.x.
-5.  **Visualizations**: Integrated date histogram to visualize event distribution over time with automatic bucket sizing.
-6.  **Flexible Connectivity**: Support for multiple Elasticsearch configurations, including Basic Auth and SSL/TLS (custom certificates).
-7.  **Nord Theme**: A clean, professional UI inspired by the Nord color palette, built with `shadcn/ui` and Tailwind CSS v4.
+3.  **Column Management**: Interactive column selector to toggle visibility and drag-to-reorder fields for customized data views.
+4.  **Flexible Time Ranges**: Support for both absolute date ranges and relative time offsets (e.g., "Last 15 minutes").
+5.  **Smart Autocomplete**: Search bar suggests field names and values based on the active index's mapping.
+6.  **Multi-Version Support**: Dynamic detection and support for Elasticsearch 7.x, 8.x, and 9.x.
+7.  **Visualizations**: Integrated date histogram to visualize event distribution over time with automatic bucket sizing.
+8.  **Document Inspection**: Deep-dive into individual documents with a formatted JSON viewer.
+9.  **Flexible Connectivity**: Support for multiple Elasticsearch configurations, including Basic Auth and SSL/TLS (custom certificates).
+7.  **Nord Theme**: A clean, professional UI inspired by the Nord color palette, built with Radix UI and Tailwind CSS v4.
 8.  **Local Development Ready**: Includes a Dockerized Elasticsearch instance and a multi-index data seeder (`npm run seed`).
 
 ## Architecture
@@ -25,10 +28,12 @@
 ### Frontend
 
 - **Framework**: React 19 (Vite)
+- **Data Fetching**: TanStack Query v5
 - **State Management**: Zustand (with persistence)
 - **Routing**: React Router v7
 - **Styling**: Tailwind CSS v4 (Nord theme)
-- **Components**: shadcn/ui (Radix UI primitives)
+- **Components**: Radix UI primitives & Lucide icons
+- **Drag & Drop**: dnd-kit (for column reordering)
 - **Visualizations**: Recharts
 
 ### Backend / Desktop

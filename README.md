@@ -12,6 +12,8 @@
 - **Multi-Version Support**: Seamlessly connects to Elasticsearch 7.x, 8.x, and 9.x clusters.
 - **Smart Autocomplete**: Real-time suggestions for field names and values.
 - **Visualizations**: Built-in date histogram with automatic scaling to see event spikes and trends.
+- **Column Customization**: Toggle and reorder columns with drag-and-drop to focus on relevant data.
+- **Document Inspection**: Quickly view raw JSON data for any search result.
 - **Multi-Server Support**: Easily switch between local, staging, and production clusters with support for Basic Auth and SSL.
 - **Nord Theme**: A clean, modern UI based on the Nord color palette.
 
@@ -57,12 +59,12 @@ npm run electron-dev
 
 ## Tech Stack
 
-- **Frontend**: React 19, Vite 6, Tailwind CSS v4
+- **Frontend**: React 19, Vite 6, Tailwind CSS v4, TanStack Query, Zustand
 - **Desktop**: Electron
-- **Backend**: Express.js
-- **UI Components**: shadcn/ui (Radix UI)
+- **Backend**: Node.js, Express.js, Undici
+- **UI Components**: Radix UI, Lucide Icons, dnd-kit
 - **Visualizations**: Recharts
-- **Database**: Elasticsearch v8
+- **Database**: Elasticsearch (v7, v8, v9 support)
 
 ## License
 

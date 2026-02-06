@@ -1,5 +1,6 @@
 import { Minus, Square, X, Copy } from 'lucide-react';
 import { useState } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/radix/tooltip';
 
 export function WindowControls() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -19,27 +20,41 @@ export function WindowControls() {
 
   return (
     <div className="flex items-center h-full no-drag">
-      <button
-        onClick={handleMinimize}
-        className="inline-flex items-center justify-center w-12 h-full hover:bg-muted transition-colors"
-        title="Minimize"
-      >
-        <Minus className="w-4 h-4" />
-      </button>
-      <button
-        onClick={handleMaximize}
-        className="inline-flex items-center justify-center w-12 h-full hover:bg-muted transition-colors"
-        title={isMaximized ? 'Restore' : 'Maximize'}
-      >
-        {isMaximized ? <Copy className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
-      </button>
-      <button
-        onClick={handleClose}
-        className="inline-flex items-center justify-center w-12 h-full hover:bg-destructive hover:text-destructive-foreground transition-colors"
-        title="Close"
-      >
-        <X className="w-4 h-4" />
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={handleMinimize}
+            className="inline-flex items-center justify-center w-12 h-full hover:bg-muted transition-colors"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Minimize</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={handleMaximize}
+            className="inline-flex items-center justify-center w-12 h-full hover:bg-muted transition-colors"
+          >
+            {isMaximized ? <Copy className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">{isMaximized ? 'Restore' : 'Maximize'}</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={handleClose}
+            className="inline-flex items-center justify-center w-12 h-full hover:bg-destructive hover:text-destructive-foreground transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Close</TooltipContent>
+      </Tooltip>
     </div>
   );
 }

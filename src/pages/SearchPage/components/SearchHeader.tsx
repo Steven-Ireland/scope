@@ -10,6 +10,7 @@ import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/radix/button';
 import { DatePickerWithRange } from '@/components/radix/date-range-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/radix/popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/radix/tooltip';
 import { Input } from '@/components/radix/input';
 import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
@@ -176,24 +177,33 @@ export function SearchHeader({
       </Select>
 
       <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="icon" className="shrink-0" title="Configure Columns">
-            <Columns className="h-4 w-4" />
-          </Button>
-        </PopoverTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" className="shrink-0">
+                <Columns className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Configure visible columns and their order</TooltipContent>
+        </Tooltip>
         <PopoverContent className="w-fit min-w-64 p-0 flex flex-col max-h-[500px]" align="start">
           <div className="p-3 border-b flex flex-col gap-2 shrink-0">
             <div className="flex items-center justify-between">
               <h4 className="font-medium text-sm">Configurable Columns</h4>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={onResetColumns}
-                title="Reset to default"
-              >
-                <RotateCcw className="h-3 w-3" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={onResetColumns}
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Reset to default</TooltipContent>
+              </Tooltip>
             </div>
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />

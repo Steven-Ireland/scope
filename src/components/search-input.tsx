@@ -122,12 +122,38 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
         }
       }
     } else {
+      const search = lastWord.toLowerCase();
       const matches = fields
-        .filter(f =>
-          f.name.toLowerCase().startsWith(lastWord.toLowerCase()) && 
-          (lastWord === '' || f.name.toLowerCase() !== lastWord.toLowerCase())
-        )
-        .sort((a, b) => a.name.localeCompare(b.name));
+        .filter(f => {
+          const name = f.name.toLowerCase();
+          if (search === '') return true;
+          if (name === search) return false;
+          
+          // Smart matching: 
+          // 1. Starts with query
+          // 2. Any segment (split by dot) starts with query
+          if (name.startsWith(search)) return true;
+          const segments = name.split('.');
+          return segments.some(segment => segment.startsWith(search));
+        })
+        .sort((a, b) => {
+          const aName = a.name.toLowerCase();
+          const bName = b.name.toLowerCase();
+          
+          // Prioritize exact prefix match
+          const aStarts = aName.startsWith(search);
+          const bStarts = bName.startsWith(search);
+          if (aStarts && !bStarts) return -1;
+          if (!aStarts && bStarts) return 1;
+
+          // Then prioritize segment prefix match
+          const aSegmentStarts = aName.split('.').some(s => s.startsWith(search));
+          const bSegmentStarts = bName.split('.').some(s => s.startsWith(search));
+          if (aSegmentStarts && !bSegmentStarts) return -1;
+          if (!aSegmentStarts && bSegmentStarts) return 1;
+
+          return aName.localeCompare(bName);
+        });
 
       if (matches.length > 0) {
         setSuggestions(matches.slice(0, 10).map(f => ({

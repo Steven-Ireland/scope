@@ -234,6 +234,49 @@ describe('SearchInput Autocomplete', () => {
     expect(mockOnChange).toHaveBeenCalledWith('level:error message:');
   });
 
+  it('should match fields by segments (e.g., "proces" matches "transaction.processor.name")', async () => {
+    const customFields = [
+      ...fields,
+      { name: 'transaction.processor.name', type: 'keyword' }
+    ];
+    (apiClient.getFields as any).mockResolvedValue(customFields);
+
+    await act(async () => {
+      render(
+        <SearchInput
+          value="proces"
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+          index="logs"
+          placeholder="Search..."
+        />
+      );
+    });
+
+    const input = screen.getByPlaceholderText('Search...') as HTMLInputElement;
+    await act(async () => {
+      input.focus();
+      input.setSelectionRange(6, 6);
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'proces' } });
+    });
+
+    const suggestion = await screen.findByText('transaction.processor.name');
+    expect(suggestion).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'Tab' });
+    });
+
+    expect(mockOnChange).toHaveBeenCalledWith('transaction.processor.name:');
+  });
+
   it('should search with Enter when no suggestions are open', async () => {
     await act(async () => {
       render(

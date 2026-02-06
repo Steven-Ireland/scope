@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SearchPage from './SearchPage';
 import { useIndices, useFields, useSearch } from '@/hooks/use-elasticsearch';
@@ -10,6 +10,14 @@ vi.mock('@/hooks/use-elasticsearch', () => ({
   useIndices: vi.fn(),
   useFields: vi.fn(),
   useSearch: vi.fn(),
+}));
+
+// Mock apiClient
+vi.mock('@/lib/api-client', () => ({
+  apiClient: {
+    getFields: vi.fn().mockResolvedValue([]),
+    getValues: vi.fn().mockResolvedValue([]),
+  },
 }));
 
 // Mock useConfigStore
@@ -66,17 +74,19 @@ describe('SearchPage Integration', () => {
       return { data: null, isLoading: false };
     });
 
-    render(
-      <TooltipProvider>
-        <SearchPage />
-      </TooltipProvider>
-    );
+    await act(async () => {
+      render(
+        <TooltipProvider>
+          <SearchPage />
+        </TooltipProvider>
+      );
+    });
 
     // Initial state: columns are ['@timestamp', 'event_time']
     expect(capturedParams.timestampField).toBe('@timestamp');
 
     // Swap columns
-    act(() => {
+    await act(async () => {
       useSearchStore
         .getState()
         .updateTab('default', 'tab1', { columns: ['event_time', '@timestamp'] });

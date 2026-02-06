@@ -6,7 +6,6 @@ const os = require('os');
 const { Client: Client8 } = require('@elastic/elasticsearch-8');
 const { Client: Client7 } = require('@elastic/elasticsearch-7');
 const { Client: Client9 } = require('@elastic/elasticsearch-9');
-const { Agent } = require('undici');
 
 const app = express();
 app.use(cors());
@@ -108,7 +107,7 @@ const getVersionedClient = async (req) => {
   }
 
   // Helper to create and verify a client
-  const tryCreateClient = async (Client, major) => {
+  const tryCreateClient = async (Client) => {
     const client = new Client(config);
     const info = normalizeResponse(await client.info());
     const versionNum = info.version.number;
@@ -123,8 +122,8 @@ const getVersionedClient = async (req) => {
   if (hintMajorVersion) {
     try {
       const Client = { 7: Client7, 8: Client8, 9: Client9 }[hintMajorVersion];
-      if (Client) return await tryCreateClient(Client, hintMajorVersion);
-    } catch (e) {
+      if (Client) return await tryCreateClient(Client);
+    } catch {
       console.warn(`Hinted client v${hintMajorVersion} failed for ${url}, auto-detecting...`);
     }
   }
@@ -138,8 +137,8 @@ const getVersionedClient = async (req) => {
 
   for (const { Client, v } of versions) {
     try {
-      return await tryCreateClient(Client, v);
-    } catch (e) {
+      return await tryCreateClient(Client);
+    } catch {
       console.warn(`ES detection: v${v} failed for ${url}`);
     }
   }

@@ -319,8 +319,7 @@ export function SearchInput({
         return suggestion.value.slice(lastWord.length) + ':';
       }
     } else {
-      const [fieldName, ...valueParts] = lastWord.split(':');
-      const valuePrefix = valueParts.join(':');
+      const valuePrefix = lastWord.split(':').slice(1).join(':');
       if (suggestion.value.toLowerCase().startsWith(valuePrefix.toLowerCase())) {
         return suggestion.value.slice(valuePrefix.length) + ' ';
       }

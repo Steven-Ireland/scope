@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { CalendarIcon, Clock } from 'lucide-react';
-import { format, parse, startOfDay, addDays, endOfDay } from 'date-fns';
+import { format, parse, startOfDay, endOfDay } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 
 import { cn } from '@/lib/utils';
@@ -83,7 +83,9 @@ export function DatePickerWithRange({
       if (!isNaN(parsed.getTime())) {
         setDate({ ...date, from: parsed });
       }
-    } catch (e) {}
+    } catch {
+      // Ignore parsing errors
+    }
   };
 
   const handleManualTo = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,7 +99,9 @@ export function DatePickerWithRange({
       if (!isNaN(parsed.getTime())) {
         setDate({ ...date, to: parsed });
       }
-    } catch (e) {}
+    } catch {
+      // Ignore parsing errors
+    }
   };
 
   const handleManualRel = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -68,6 +68,22 @@
     npm run electron-dev
     ```
 
+## Development Workflow
+
+To ensure code quality and stability, follow these procedures when making changes. **Always run `npm run lint` and `npm run test` after making any changes.**
+
+### Testing
+- **Run Tests**: Use `npm run test` to execute the full suite using Vitest.
+- **Component Tests**: Many UI components utilize Radix UI's Tooltip. When writing or updating tests for these components, ensure they are wrapped in a `TooltipProvider` to avoid context errors.
+
+### Linting & Formatting
+- **Lint**: Run `npm run lint` to check for code style and potential errors.
+- **Format**: Use `npm run format` to automatically format the codebase using Prettier.
+
+### Building
+- **Production Build**: Use `npm run build` to generate the production-ready web application in the `dist/` directory.
+- **Electron Package**: Use `npm run electron-build` to package the application for desktop distribution.
+
 ## Directory Structure
 
 - `/src`: Frontend React application.

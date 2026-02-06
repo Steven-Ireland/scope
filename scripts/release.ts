@@ -63,7 +63,7 @@ try {
   execSync(`git commit -m "v${nextVersion}"`);
   execSync(`git tag v${nextVersion}`);
   console.log(`Successfully released v${nextVersion}`);
-} catch (error) {
+} catch {
   console.error(
     'Git operation failed. Make sure your working directory is clean or check git errors.'
   );

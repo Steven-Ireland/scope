@@ -21,7 +21,6 @@ const EMPTY_ARRAY: any[] = [];
 
 function SearchContent({ tabId, serverId }: { tabId: string; serverId: string }) {
   const tabs = useSearchStore((state) => state.tabs[serverId] || EMPTY_ARRAY);
-  const activeTabId = useSearchStore((state) => state.activeTabIds[serverId]);
   const activeTab = useMemo(() => tabs.find((t) => t.id === tabId) || null, [tabs, tabId]);
 
   const updateTab = useSearchStore((state) => state.updateTab);

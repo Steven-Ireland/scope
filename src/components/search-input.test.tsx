@@ -187,7 +187,7 @@ describe('SearchInput Autocomplete', () => {
       fireEvent.change(input, { target: { value: 'level:info me' } });
     });
 
-    const suggestion = await screen.findByText('message');
+    await screen.findByText('message');
     await act(async () => {
       fireEvent.keyDown(input, { key: 'Tab' });
     });
@@ -226,7 +226,7 @@ describe('SearchInput Autocomplete', () => {
     });
 
     // We expect the suggestions to show up for fields
-    const suggestion = await screen.findByText('message');
+    await screen.findByText('message');
     await act(async () => {
       fireEvent.keyDown(input, { key: 'Tab' });
     });

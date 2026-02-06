@@ -72,9 +72,8 @@ export default function ServerSettingsPage() {
   useEffect(() => {
     if (!server || form.id !== server.id) return;
 
-    const { id: _, ...updates } = form;
     updateServer(server.id, {
-      ...updates,
+      ...form,
       majorVersion: verify?.majorVersion ?? form.majorVersion,
       username: form.username || undefined,
       password: form.password || undefined,

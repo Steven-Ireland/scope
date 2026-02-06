@@ -285,14 +285,7 @@ export default function SearchPage() {
   }, [serverId, setActiveTabId]);
   
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden" key={serverId}>
-      <SearchTabs
-        tabs={tabs}
-        activeTabId={activeTabId}
-        onTabSelect={handleTabSelect}
-        onTabClose={(id) => removeTab(serverId, id)}
-        onTabAdd={() => addTab(serverId)}
-      />
+    <div className="flex flex-col h-full bg-background overflow-hidden" key={serverId}>
       <div className="flex-1 relative overflow-hidden">
         {tabs.map(tab => (
           <div 

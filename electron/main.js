@@ -48,12 +48,31 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
+    frame: false,
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 16, y: 16 },
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
     },
     backgroundColor: '#000000',
+  });
+
+  ipcMain.on('window-minimize', () => {
+    win.minimize();
+  });
+
+  ipcMain.on('window-maximize', () => {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
+  });
+
+  ipcMain.on('window-close', () => {
+    win.close();
   });
 
   if (!app.isPackaged) {

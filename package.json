@@ -20,6 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed": "tsx scripts/seed.ts",
+    "clear": "tsx scripts/clear.ts",
     "release": "tsx scripts/release.ts",
     "electron-dev": "concurrently \"vite\" \"electron .\"",
     "electron-build": "npm run build && electron-builder --win --linux"

@@ -1,10 +1,9 @@
 import { Client } from '@elastic/elasticsearch-8';
 import { faker } from '@faker-js/faker';
-import { subMinutes, subHours, subDays } from 'date-fns';
+import { subDays, startOfDay, endOfDay } from 'date-fns';
 
 const NODES = ['http://localhost:9200', 'http://localhost:9201'];
 
-const LOGS_INDEX = 'logs-events';
 const METRICS_INDEX = 'metrics-data';
 const LARGE_EVENTS_INDEX = 'large-events';
 
@@ -28,8 +27,17 @@ async function seedLargeEvents(client: Client) {
           service: { type: 'keyword' },
           'metadata.hostname': { type: 'keyword' },
           'metadata.version': { type: 'keyword' },
+          trace: {
+            properties: {
+              context: {
+                properties: {
+                  span_id: { type: 'keyword' },
+                },
+              },
+            },
+          },
           ...Object.fromEntries(
-            Array.from({ length: 30 }, (_, i) => [`extra_field_${i + 1}`, { type: 'keyword' }])
+            Array.from({ length: 27 }, (_, i) => [`extra_field_${i + 1}`, { type: 'keyword' }])
           ),
         },
       },
@@ -88,7 +96,7 @@ async function seedLargeEvents(client: Client) {
       );
 
       const extraFields = Object.fromEntries(
-        Array.from({ length: 30 }, (_, i) => [`extra_field_${i + 1}`, faker.word.sample()])
+        Array.from({ length: 27 }, (_, i) => [`extra_field_${i + 1}`, faker.word.sample()])
       );
 
       body.push({ index: { _index: LARGE_EVENTS_INDEX } });
@@ -101,84 +109,12 @@ async function seedLargeEvents(client: Client) {
         service: faker.helpers.arrayElement(services),
         'metadata.hostname': faker.system.networkInterface(),
         'metadata.version': `v${faker.system.semver()}`,
+        trace: {
+          context: {
+            span_id: faker.string.alphanumeric(16),
+          },
+        },
         ...extraFields,
-      });
-    }
-    await client.bulk({ body });
-  }
-}
-
-async function seedLogs(client: Client) {
-  if (await client.indices.exists({ index: LOGS_INDEX })) {
-    console.log(`Deleting existing index: ${LOGS_INDEX}`);
-    await client.indices.delete({ index: LOGS_INDEX });
-  }
-
-  console.log(`Creating index: ${LOGS_INDEX}`);
-  await client.indices.create({
-    index: LOGS_INDEX,
-    body: {
-      mappings: {
-        properties: {
-          '@timestamp': { type: 'date' },
-          event_time: { type: 'date' },
-          level: { type: 'keyword' },
-          message: { type: 'text' },
-          service: { type: 'keyword' },
-          user: { type: 'keyword' },
-          response_time: { type: 'integer' },
-          status_code: { type: 'integer' },
-          transaction: {
-            properties: {
-              processor: {
-                properties: {
-                  name: { type: 'keyword' },
-                },
-              },
-              amount: { type: 'float' },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  const levels = ['info', 'warn', 'error', 'debug'];
-  const services = ['auth-service', 'payment-api', 'frontend-web', 'inventory-worker'];
-
-  console.log(`Generating and indexing data for ${LOGS_INDEX}...`);
-  const batchSize = 100;
-  const totalRecords = 500;
-
-  for (let i = 0; i < totalRecords / batchSize; i++) {
-    const body = [];
-    for (let j = 0; j < batchSize; j++) {
-      const timestamp = faker.date.between({
-        from: subDays(new Date(), 7),
-        to: new Date(),
-      });
-      // event_time is now completely independent and can be from a wider range
-      const eventTime = faker.date.between({
-        from: subDays(new Date(), 30),
-        to: new Date(),
-      });
-
-      body.push({ index: { _index: LOGS_INDEX } });
-      body.push({
-        '@timestamp': timestamp.toISOString(),
-        event_time: eventTime.toISOString(),
-        level: faker.helpers.arrayElement(levels),
-        message: faker.hacker.phrase(),
-        service: faker.helpers.arrayElement(services),
-        user: faker.internet.username(),
-        response_time: faker.number.int({ min: 10, max: 2000 }),
-        status_code: faker.helpers.arrayElement([200, 201, 400, 401, 403, 404, 500]),
-        transaction: {
-          processor: {
-            name: faker.helpers.arrayElement(['stripe', 'paypal', 'braintree', 'adyen']),
-          },
-          amount: faker.number.float({ min: 1, max: 1000, fractionDigits: 2 }),
-        },
       });
     }
     await client.bulk({ body });
@@ -245,8 +181,11 @@ async function seedDailyLogs(client: Client) {
   const services = ['api-gateway', 'user-service', 'auth-service'];
 
   for (let d = 0; d < 3; d++) {
-    const date = subDays(new Date(), d);
-    const dateStr = date.toISOString().split('T')[0].replace(/-/g, '.');
+    const baseDate = subDays(new Date(), d);
+    const startDate = startOfDay(baseDate);
+    const endDate = endOfDay(baseDate);
+
+    const dateStr = baseDate.toISOString().split('T')[0].replace(/-/g, '.');
     const indexName = `logs-${dateStr}`;
 
     if (await client.indices.exists({ index: indexName })) {
@@ -261,6 +200,7 @@ async function seedDailyLogs(client: Client) {
         mappings: {
           properties: {
             '@timestamp': { type: 'date' },
+            event_time: { type: 'date' },
             level: { type: 'keyword' },
             message: { type: 'text' },
             service: { type: 'keyword' },
@@ -273,13 +213,20 @@ async function seedDailyLogs(client: Client) {
     const body = [];
     for (let j = 0; j < 50; j++) {
       const timestamp = faker.date.between({
-        from: date,
-        to: date,
+        from: startDate,
+        to: endDate,
+      });
+
+      // event_time slightly offset or just another random time in the same day
+      const eventTime = faker.date.between({
+        from: startDate,
+        to: endDate,
       });
 
       body.push({ index: { _index: indexName } });
       body.push({
         '@timestamp': timestamp.toISOString(),
+        event_time: eventTime.toISOString(),
         level: faker.helpers.arrayElement(levels),
         message: faker.hacker.phrase(),
         service: faker.helpers.arrayElement(services),
@@ -296,7 +243,13 @@ async function seed() {
 
     try {
       await client.info();
-      await seedLogs(client);
+
+      // Delete legacy logs-events index if it exists
+      if (await client.indices.exists({ index: 'logs-events' })) {
+        console.log('Deleting legacy logs-events index...');
+        await client.indices.delete({ index: 'logs-events' });
+      }
+
       await seedMetrics(client);
       await seedLargeEvents(client);
       await seedDailyLogs(client);

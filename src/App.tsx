@@ -43,12 +43,28 @@ function TitleBar() {
   const setActiveTabId = useSearchStore((state) => state.setActiveTabId);
   const removeTab = useSearchStore((state) => state.removeTab);
   const addTab = useSearchStore((state) => state.addTab);
+  const updateTab = useSearchStore((state) => state.updateTab);
+  const reorderTabs = useSearchStore((state) => state.reorderTabs);
 
   const handleTabSelect = useCallback(
     (id: string) => {
       setActiveTabId(serverId, id);
     },
     [serverId, setActiveTabId]
+  );
+
+  const handleTabRename = useCallback(
+    (id: string, customName: string) => {
+      updateTab(serverId, id, { customName });
+    },
+    [serverId, updateTab]
+  );
+
+  const handleTabReorder = useCallback(
+    (oldIndex: number, newIndex: number) => {
+      reorderTabs(serverId, oldIndex, newIndex);
+    },
+    [serverId, reorderTabs]
   );
 
   if (!isElectron) return null;
@@ -71,6 +87,8 @@ function TitleBar() {
               onTabSelect={handleTabSelect}
               onTabClose={(id) => removeTab(serverId, id)}
               onTabAdd={() => addTab(serverId)}
+              onTabRename={handleTabRename}
+              onTabReorder={handleTabReorder}
             />
           </div>
         )}

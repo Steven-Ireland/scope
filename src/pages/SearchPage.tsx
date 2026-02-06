@@ -1,11 +1,9 @@
 import {
   useState,
   useEffect,
-  useLayoutEffect,
   Suspense,
   useMemo,
   useCallback,
-  useRef,
 } from 'react';
 import { useIndices, useFields, useSearch } from '@/hooks/use-elasticsearch';
 import { DateHistogram } from '@/components/date-histogram';
@@ -13,7 +11,6 @@ import { SearchHeader } from './SearchPage/components/SearchHeader';
 import { ResultsTable } from './SearchPage/components/ResultsTable';
 import { DocumentDetails } from './SearchPage/components/DocumentDetails';
 import { LogEntry } from '@/types/elasticsearch';
-import { SearchTabs } from '@/components/search-tabs';
 import { useConfigStore } from '@/store/use-config-store';
 import { useSearchStore } from '@/store/use-search-store';
 import { cn, getTimestampField } from '@/lib/utils';
@@ -337,17 +334,6 @@ export default function SearchPage() {
   const tabs = useSearchStore((state) => state.tabs[serverId] || EMPTY_ARRAY);
   const activeTabId = useSearchStore(
     (state) => state.activeTabIds[serverId] || tabs[0]?.id || null
-  );
-
-  const setActiveTabId = useSearchStore((state) => state.setActiveTabId);
-  const removeTab = useSearchStore((state) => state.removeTab);
-  const addTab = useSearchStore((state) => state.addTab);
-
-  const handleTabSelect = useCallback(
-    (id: string) => {
-      setActiveTabId(serverId, id);
-    },
-    [serverId, setActiveTabId]
   );
 
   return (

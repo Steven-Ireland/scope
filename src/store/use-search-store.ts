@@ -14,6 +14,7 @@ interface SearchState {
   addTab: (serverId: string) => void;
   removeTab: (serverId: string, tabId: string) => void;
   updateTab: (serverId: string, tabId: string, updates: Partial<Omit<SearchTab, 'id'>>) => void;
+  reorderTabs: (serverId: string, oldIndex: number, newIndex: number) => void;
   setActiveTabId: (serverId: string, tabId: string | null) => void;
   setColumnConfig: (indexName: string, columns: string[]) => void;
   setSelectedLog: (tabId: string, log: LogEntry | null) => void;
@@ -127,6 +128,19 @@ export const useSearchStore = create<SearchState>()(
           const currentTabs = state.tabs[serverId] || [];
           const updatedTabs = [...currentTabs];
           updatedTabs[tabIndex] = { ...updatedTabs[tabIndex], ...updates };
+
+          return {
+            tabs: { ...state.tabs, [serverId]: updatedTabs },
+          };
+        });
+      },
+
+      reorderTabs: (serverId, oldIndex, newIndex) => {
+        set((state) => {
+          const currentTabs = state.tabs[serverId] || [];
+          const updatedTabs = [...currentTabs];
+          const [removed] = updatedTabs.splice(oldIndex, 1);
+          updatedTabs.splice(newIndex, 0, removed);
 
           return {
             tabs: { ...state.tabs, [serverId]: updatedTabs },

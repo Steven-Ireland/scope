@@ -5,6 +5,7 @@ export type RangeMode = 'absolute' | 'relative';
 export interface SearchTab {
   id: string;
   name: string;
+  customName?: string;
   index: string;
   query: string;
   dateRange: DateRange | undefined;

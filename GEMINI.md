@@ -19,7 +19,7 @@
 6.  **Multi-Version Support**: Dynamic detection and support for Elasticsearch 7.x, 8.x, and 9.x.
 7.  **Visualizations**: Integrated date histogram to visualize event distribution over time with automatic bucket sizing.
 8.  **Document Inspection**: Deep-dive into individual documents with a formatted JSON viewer.
-9.  **Flexible Connectivity**: Support for multiple Elasticsearch configurations, including Basic Auth and SSL/TLS (custom certificates).
+9.  **Flexible Connectivity**: Support for multiple Elasticsearch configurations, including Basic Auth, SSL/TLS (custom certificates), and an "Insecure SSL" mode for local development.
 7.  **Nord Theme**: A clean, professional UI inspired by the Nord color palette, built with Radix UI and Tailwind CSS v4.
 8.  **Local Development Ready**: Includes a Dockerized Elasticsearch instance and a multi-index data seeder (`npm run seed`).
 
@@ -39,7 +39,8 @@
 ### Backend / Desktop
 
 - **Runtime**: Node.js (Express) & Electron
-- **Database Client**: Dynamic versioning support for `@elastic/elasticsearch` (v7, v8, v9)
+- **Configuration**: Shared `config.json` read directly from disk for zero-latency sync and improved security.
+- **Database Client**: Dynamic versioning support for `@elastic/elasticsearch` (v7, v8, v9) with intelligent connection pooling and auto-invalidation on configuration changes.
 - **Networking**: `undici` for high-performance HTTP requests
 - **Endpoints**:
   - `GET /api/indices`: Lists available indices and applies pattern grouping.

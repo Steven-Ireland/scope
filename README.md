@@ -14,7 +14,7 @@
 - **Visualizations**: Built-in date histogram with automatic scaling to see event spikes and trends.
 - **Column Customization**: Toggle and reorder columns with drag-and-drop to focus on relevant data.
 - **Document Inspection**: Quickly view raw JSON data for any search result.
-- **Multi-Server Support**: Easily switch between local, staging, and production clusters with support for Basic Auth and SSL.
+- **Multi-Server Support**: Easily switch between local, staging, and production clusters with support for Basic Auth, SSL/TLS certificates, and Insecure SSL mode.
 - **Nord Theme**: A clean, modern UI based on the Nord color palette.
 
 ## Quick Start

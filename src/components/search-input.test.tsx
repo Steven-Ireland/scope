@@ -36,7 +36,7 @@ describe('SearchInput Autocomplete', () => {
     (apiClient.getFields as any).mockResolvedValue(fields);
   });
 
-  it('should accept a suggestion with Enter and append it correctly', async () => {
+  it('should accept a suggestion with Tab and append it correctly', async () => {
     await act(async () => {
       render(
         <SearchInput
@@ -69,9 +69,9 @@ describe('SearchInput Autocomplete', () => {
     const suggestion = await screen.findByText('message');
     expect(suggestion).toBeInTheDocument();
 
-    // Press Enter to select
+    // Press Tab to select first suggestion
     await act(async () => {
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.keyDown(input, { key: 'Tab' });
     });
 
     // Should call onChange with "message:"
@@ -79,7 +79,86 @@ describe('SearchInput Autocomplete', () => {
     expect(mockOnSearch).not.toHaveBeenCalled();
   });
 
-  it('should append a suggestion to existing query text correctly', async () => {
+  it('should accept a suggestion with ArrowDown and Enter', async () => {
+    await act(async () => {
+      render(
+        <SearchInput
+          value="mes"
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+          index="logs"
+          placeholder="Search..."
+        />
+      );
+    });
+
+    const input = screen.getByPlaceholderText('Search...') as HTMLInputElement;
+    await act(async () => {
+      input.focus();
+      input.setSelectionRange(3, 3);
+    });
+
+    await act(async () => {
+      await Promise.resolve(); 
+    });
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'mes' } });
+    });
+
+    await screen.findByText('message');
+
+    // Press ArrowDown then Enter
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'ArrowDown' });
+    });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'Enter' });
+    });
+
+    expect(mockOnChange).toHaveBeenCalledWith('message:');
+  });
+
+  it('should trigger search with Enter when suggestions are open but none is selected', async () => {
+    await act(async () => {
+      render(
+        <SearchInput
+          value="mes"
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+          index="logs"
+          placeholder="Search..."
+        />
+      );
+    });
+
+    const input = screen.getByPlaceholderText('Search...') as HTMLInputElement;
+    await act(async () => {
+      input.focus();
+      input.setSelectionRange(3, 3);
+    });
+
+    await act(async () => {
+      await Promise.resolve(); 
+    });
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'mes' } });
+    });
+
+    await screen.findByText('message');
+
+    // Press Enter WITHOUT ArrowDown
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'Enter' });
+    });
+
+    // Should NOT call onChange with suggestion, but SHOULD call onSearch
+    expect(mockOnChange).not.toHaveBeenCalledWith('message:');
+    expect(mockOnSearch).toHaveBeenCalled();
+  });
+
+  it('should append a suggestion to existing query text correctly with Tab', async () => {
     await act(async () => {
       render(
         <SearchInput
@@ -110,13 +189,13 @@ describe('SearchInput Autocomplete', () => {
 
     const suggestion = await screen.findByText('message');
     await act(async () => {
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.keyDown(input, { key: 'Tab' });
     });
 
     expect(mockOnChange).toHaveBeenCalledWith('level:info message:');
   });
 
-  it('should append a field suggestion after a completed key-value pair and space', async () => {
+  it('should append a field suggestion after a completed key-value pair and space with Tab', async () => {
     await act(async () => {
       render(
         <SearchInput
@@ -149,7 +228,7 @@ describe('SearchInput Autocomplete', () => {
     // We expect the suggestions to show up for fields
     const suggestion = await screen.findByText('message');
     await act(async () => {
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.keyDown(input, { key: 'Tab' });
     });
 
     expect(mockOnChange).toHaveBeenCalledWith('level:error message:');

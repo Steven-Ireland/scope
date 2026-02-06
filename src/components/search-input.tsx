@@ -111,7 +111,7 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
             kind: 'value'
           })));
           setIsOpen(true);
-          setActiveIndex(0);
+          setActiveIndex(-1);
         } else {
           setIsOpen(false);
         }
@@ -137,7 +137,7 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
           kind: 'field'
         })));
         setIsOpen(true);
-        setActiveIndex(0);
+        setActiveIndex(-1);
       } else {
         setIsOpen(false);
       }
@@ -209,11 +209,18 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
         e.preventDefault();
         setIsOpen(false);
         return;
-      } else if (e.key === 'Tab' || e.key === 'Enter') {
+      } else if (e.key === 'Tab') {
+        if (suggestions.length > 0) {
+          e.preventDefault();
+          const indexToSelect = activeIndex >= 0 ? activeIndex : 0;
+          selectSuggestion(suggestions[indexToSelect]);
+          return;
+        }
+      } else if (e.key === 'Enter') {
         if (activeIndex >= 0 && activeIndex < suggestions.length) {
           e.preventDefault();
           selectSuggestion(suggestions[activeIndex]);
-          return; // Crucial: return here so Enter doesn't trigger onSearch below
+          return;
         }
       }
     }
@@ -240,9 +247,11 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
   };
 
   const ghostText = React.useMemo(() => {
-    if (!isOpen || activeIndex < 0) return '';
+    if (!isOpen || (activeIndex < 0 && suggestions.length === 0)) return '';
     
-    const suggestion = suggestions[activeIndex];
+    const suggestion = activeIndex >= 0 ? suggestions[activeIndex] : suggestions[0];
+    if (!suggestion) return '';
+    
     const cursorPosition = inputRef.current?.selectionStart || 0;
     
     // Only show ghost text if cursor is at the end of the text

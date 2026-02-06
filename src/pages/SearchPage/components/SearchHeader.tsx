@@ -103,7 +103,7 @@ function SortableItem({ id, name, type, selected, onToggle }: {
         >
           {selected && <Check className="h-2.5 w-2.5" />}
         </div>
-        <span className="truncate flex-1 text-left">{name}</span>
+        <span className="whitespace-nowrap flex-1 text-left">{name}</span>
         <span className="text-[10px] opacity-50 px-1 shrink-0">{type}</span>
       </button>
     </div>
@@ -179,7 +179,7 @@ export function SearchHeader({
               <span className="hidden lg:inline">Columns</span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0 flex flex-col max-h-[500px]" align="start">
+          <PopoverContent className="w-fit min-w-64 p-0 flex flex-col max-h-[500px]" align="start">
             <div className="p-3 border-b flex flex-col gap-2 shrink-0">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-sm">Configurable Columns</h4>
@@ -205,7 +205,7 @@ export function SearchHeader({
                 <div className="space-y-4">
                   {visibleColumns.length > 0 && !columnSearch && (
                     <div className="space-y-1">
-                      <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                      <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                         Active Columns (Drag to reorder)
                       </div>
                       <DndContext
@@ -233,7 +233,7 @@ export function SearchHeader({
                   )}
 
                   <div className="space-y-1">
-                    <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                       {columnSearch ? 'Search Results' : 'Available Fields'}
                     </div>
                     {unselectedFields
@@ -256,7 +256,7 @@ export function SearchHeader({
                           >
                             {/* Unselected, so no check */}
                           </div>
-                          <span className="truncate flex-1 text-left">{f.name}</span>
+                          <span className="whitespace-nowrap flex-1 text-left">{f.name}</span>
                           <span className="text-[10px] opacity-50 px-1">{f.type}</span>
                         </button>
                       ))}

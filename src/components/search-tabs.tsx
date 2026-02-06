@@ -1,4 +1,4 @@
-import { Plus, X, Search } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { SearchTab } from '@/types/search-tab';
 import { cn } from '@/lib/utils';
 
@@ -18,36 +18,38 @@ export function SearchTabs({
   onTabAdd,
 }: SearchTabsProps) {
   return (
-    <div className="flex items-center gap-1 px-4 pt-2 bg-background border-b overflow-x-auto no-scrollbar shrink-0 h-[45px]">
+    <div className="flex items-center gap-1 px-4 pt-2 bg-background border-b overflow-x-auto no-scrollbar shrink-0 h-[52px]">
       {tabs.map((tab) => (
         <div
           key={tab.id}
           className={cn(
-            "group flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md border-t border-l border-r transition-colors cursor-pointer min-w-[120px] max-w-[240px] relative",
+            "group flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-t-md border-t border-l border-r transition-colors cursor-pointer min-w-[140px] max-w-[240px] relative h-full",
             activeTabId === tab.id
               ? "bg-nord1 border-border text-foreground z-10 -mb-[1px]"
               : "bg-background border-transparent text-muted-foreground hover:bg-muted/30"
           )}
           onClick={() => onTabSelect(tab.id)}
         >
-          <Search className="h-3 w-3 shrink-0 opacity-50" />
-          <span className="truncate flex-1 pr-4">
-            {tab.index ? (
-              <>
-                <span className="font-bold">{tab.index}</span>
-                {tab.query && <span className="opacity-70 ml-1.5 truncate">{tab.query}</span>}
-              </>
-            ) : (
-              <span className="opacity-70 italic">{tab.name}</span>
+          <div className="flex flex-col min-w-0 flex-1 pr-4">
+            <span className={cn(
+              "truncate font-bold text-[10px] leading-tight",
+              !tab.query && !tab.index && "italic opacity-70"
+            )}>
+              {tab.query || (tab.index ? 'All Documents' : tab.name)}
+            </span>
+            {tab.index && (
+              <span className="truncate text-[8px] opacity-50 leading-tight">
+                {tab.index}
+              </span>
             )}
-          </span>
+          </div>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onTabClose(tab.id);
             }}
             className={cn(
-                "absolute right-1.5 p-0.5 rounded-sm hover:bg-muted-foreground/20 transition-opacity",
+                "absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded-sm hover:bg-muted-foreground/20 transition-opacity",
                 activeTabId === tab.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
             )}
           >

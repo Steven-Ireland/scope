@@ -62,17 +62,19 @@ export function ResultsTable({
                 <TableHead
                   key={col}
                   className={cn(
-                    isDate ? 'w-48' : '',
+                    isDate ? 'w-48' : 'max-w-md',
                     sortable
                       ? 'cursor-pointer hover:bg-muted/50 transition-colors'
                       : 'cursor-default'
                   )}
                   onClick={() => sortable && onSort(col)}
                 >
-                  <div className="flex items-center gap-1 group">
-                    {col}
+                  <div className="flex items-center gap-1 group min-w-0">
+                    <span className="truncate min-w-0" title={col}>
+                      {col}
+                    </span>
                     {sortable && (
-                      <span className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
+                      <span className="text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0">
                         {sortField === col ? (
                           sortOrder === 'asc' ? (
                             <ArrowUp className="h-3 w-3" />
@@ -112,10 +114,14 @@ export function ResultsTable({
               >
                 {columns.map((col) => {
                   const val = getValueByPath(log._source, col);
+                  const isDate = isDateField(col);
                   return (
                     <TableCell
                       key={col}
-                      className={isDateField(col) ? 'font-mono text-xs' : 'max-w-lg truncate'}
+                      className={cn(
+                        isDate ? 'font-mono text-xs w-48' : 'max-w-md truncate min-w-0'
+                      )}
+                      title={typeof val === 'string' ? val : undefined}
                     >
                       {col === 'level' ? (
                         <span

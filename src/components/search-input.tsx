@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/radix/input';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
 import { useConfigStore } from '@/store/use-config-store';

@@ -7,7 +7,7 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-} from '@/components/ui/context-menu';
+} from '@/components/radix/context-menu';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SERVER_COLORS } from '@/lib/constants';
 

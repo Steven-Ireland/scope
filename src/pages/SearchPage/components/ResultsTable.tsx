@@ -6,7 +6,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@/components/radix/table';
 import { cn, getValueByPath } from '@/lib/utils';
 import { LogEntry, ElasticsearchField } from '@/types/elasticsearch';
 import { useCallback } from 'react';

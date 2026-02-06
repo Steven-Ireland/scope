@@ -6,12 +6,12 @@ import { format, parse, startOfDay, addDays, endOfDay } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/radix/button';
+import { Calendar } from '@/components/radix/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/radix/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/radix/tabs';
+import { Input } from '@/components/radix/input';
+import { Label } from '@/components/radix/label';
 
 const RELATIVE_OPTIONS = [
   { label: '15 minutes', value: 'now-15m' },

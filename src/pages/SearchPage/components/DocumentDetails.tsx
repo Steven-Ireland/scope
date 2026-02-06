@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/radix/button';
+import { Separator } from '@/components/radix/separator';
 import { LogEntry } from '@/types/elasticsearch';
 import { flattenObject } from '@/lib/utils';
 import { useMemo, useEffect } from 'react';

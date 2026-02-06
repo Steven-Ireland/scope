@@ -5,12 +5,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/radix/select';
 import { SearchInput } from '@/components/search-input';
-import { Button } from '@/components/ui/button';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/radix/button';
+import { DatePickerWithRange } from '@/components/radix/date-range-picker';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/radix/popover';
+import { Input } from '@/components/radix/input';
 import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';

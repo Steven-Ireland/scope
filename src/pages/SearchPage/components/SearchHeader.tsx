@@ -31,6 +31,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 
 interface SearchHeaderProps {
   indices: { index: string }[];
@@ -180,7 +181,7 @@ export function SearchHeader({
         <Tooltip>
           <TooltipTrigger asChild>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" className="shrink-0">
+              <Button variant="outline" size="icon" className="shrink-0" aria-label="Columns">
                 <Columns className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
@@ -216,7 +217,7 @@ export function SearchHeader({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-1">
+          <div className="flex-1 overflow-y-auto no-scrollbar p-1">
             {fieldsLoading ? (
               <div className="p-4 text-center text-xs text-muted-foreground animate-pulse">
                 Loading fields...
@@ -232,6 +233,7 @@ export function SearchHeader({
                       sensors={sensors}
                       collisionDetection={closestCenter}
                       onDragEnd={handleDragEnd}
+                      modifiers={[restrictToVerticalAxis]}
                     >
                       <SortableContext
                         items={visibleColumns}

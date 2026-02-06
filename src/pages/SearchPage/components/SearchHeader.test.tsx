@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { SearchHeader } from './SearchHeader';
+import { TooltipProvider } from '@/components/radix/tooltip';
 
 // Minimal mocks for dnd-kit since we only want to test the logic passed to it
 vi.mock('@dnd-kit/core', async (importOriginal) => {
@@ -40,7 +41,11 @@ describe('SearchHeader Column Reordering', () => {
   };
 
   it('should call onMoveColumn when a drag ends', () => {
-    render(<SearchHeader {...mockProps} />);
+    render(
+      <TooltipProvider>
+        <SearchHeader {...mockProps} />
+      </TooltipProvider>
+    );
 
     // Open the popover
     const columnsButton = screen.getByRole('button', { name: /Columns/i });

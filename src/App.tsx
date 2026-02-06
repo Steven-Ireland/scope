@@ -42,6 +42,7 @@ function TitleBar() {
 
   const setActiveTabId = useSearchStore((state) => state.setActiveTabId);
   const removeTab = useSearchStore((state) => state.removeTab);
+  const duplicateTab = useSearchStore((state) => state.duplicateTab);
   const addTab = useSearchStore((state) => state.addTab);
   const updateTab = useSearchStore((state) => state.updateTab);
   const reorderTabs = useSearchStore((state) => state.reorderTabs);
@@ -51,6 +52,13 @@ function TitleBar() {
       setActiveTabId(serverId, id);
     },
     [serverId, setActiveTabId]
+  );
+
+  const handleTabDuplicate = useCallback(
+    (id: string) => {
+      duplicateTab(serverId, id);
+    },
+    [serverId, duplicateTab]
   );
 
   const handleTabRename = useCallback(
@@ -86,6 +94,7 @@ function TitleBar() {
               activeTabId={activeTabId}
               onTabSelect={handleTabSelect}
               onTabClose={(id) => removeTab(serverId, id)}
+              onTabDuplicate={handleTabDuplicate}
               onTabAdd={() => addTab(serverId)}
               onTabRename={handleTabRename}
               onTabReorder={handleTabReorder}

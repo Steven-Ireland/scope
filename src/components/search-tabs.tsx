@@ -1,4 +1,4 @@
-import { Plus, X, Pencil } from 'lucide-react';
+import { Plus, X, Pencil, Copy } from 'lucide-react';
 import { SearchTab } from '@/types/search-tab';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/radix/tooltip';
@@ -34,12 +34,14 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
 
 interface SearchTabsProps {
   tabs: SearchTab[];
   activeTabId: string | null;
   onTabSelect: (id: string) => void;
   onTabClose: (id: string) => void;
+  onTabDuplicate: (id: string) => void;
   onTabAdd: () => void;
   onTabRename: (id: string, name: string) => void;
   onTabReorder: (oldIndex: number, newIndex: number) => void;
@@ -50,12 +52,14 @@ function SortableTab({
   activeTabId,
   onTabSelect,
   onTabClose,
+  onTabDuplicate,
   onOpenRename,
 }: {
   tab: SearchTab;
   activeTabId: string | null;
   onTabSelect: (id: string) => void;
   onTabClose: (id: string) => void;
+  onTabDuplicate: (id: string) => void;
   onOpenRename: (tab: SearchTab) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -117,6 +121,10 @@ function SortableTab({
           <Pencil className="mr-2 h-4 w-4" />
           Rename Tab
         </ContextMenuItem>
+        <ContextMenuItem onClick={() => onTabDuplicate(tab.id)}>
+          <Copy className="mr-2 h-4 w-4" />
+          Duplicate Tab
+        </ContextMenuItem>
         <ContextMenuItem variant="destructive" onClick={() => onTabClose(tab.id)}>
           <X className="mr-2 h-4 w-4" />
           Close Tab
@@ -131,6 +139,7 @@ export function SearchTabs({
   activeTabId,
   onTabSelect,
   onTabClose,
+  onTabDuplicate,
   onTabAdd,
   onTabRename,
   onTabReorder,
@@ -177,11 +186,12 @@ export function SearchTabs({
   const tabIds = useMemo(() => tabs.map((t) => t.id), [tabs]);
 
   return (
-    <div className="flex items-end gap-1 px-2 overflow-x-auto no-scrollbar shrink-0 h-full drag">
+    <div className="flex items-end gap-1 px-2 overflow-hidden no-scrollbar shrink-0 h-full drag">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
+        modifiers={[restrictToHorizontalAxis]}
       >
         <SortableContext items={tabIds} strategy={horizontalListSortingStrategy}>
           {tabs.map((tab) => (
@@ -191,6 +201,7 @@ export function SearchTabs({
               activeTabId={activeTabId}
               onTabSelect={onTabSelect}
               onTabClose={onTabClose}
+              onTabDuplicate={onTabDuplicate}
               onOpenRename={handleOpenRename}
             />
           ))}

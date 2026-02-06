@@ -12,6 +12,7 @@ interface SearchState {
 
   // Actions
   addTab: (serverId: string) => void;
+  duplicateTab: (serverId: string, tabId: string) => void;
   removeTab: (serverId: string, tabId: string) => void;
   updateTab: (serverId: string, tabId: string, updates: Partial<Omit<SearchTab, 'id'>>) => void;
   reorderTabs: (serverId: string, oldIndex: number, newIndex: number) => void;
@@ -62,6 +63,35 @@ export const useSearchStore = create<SearchState>()(
             [serverId]: newTab.id,
           },
         }));
+      },
+
+      duplicateTab: (serverId, tabId) => {
+        set((state) => {
+          const serverTabs = state.tabs[serverId] || [];
+          const tabIndex = serverTabs.findIndex((t) => t.id === tabId);
+          if (tabIndex === -1) return state;
+
+          const tabToDuplicate = serverTabs[tabIndex];
+          const newTab: SearchTab = {
+            ...tabToDuplicate,
+            id: crypto.randomUUID(),
+            customName: tabToDuplicate.customName ? `${tabToDuplicate.customName} (Copy)` : undefined,
+          };
+
+          const updatedTabs = [...serverTabs];
+          updatedTabs.splice(tabIndex + 1, 0, newTab);
+
+          return {
+            tabs: {
+              ...state.tabs,
+              [serverId]: updatedTabs,
+            },
+            activeTabIds: {
+              ...state.activeTabIds,
+              [serverId]: newTab.id,
+            },
+          };
+        });
       },
 
       removeTab: (serverId, tabId) => {

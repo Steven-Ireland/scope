@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SearchPage from './SearchPage';
 import { useIndices, useFields, useSearch } from '@/hooks/use-elasticsearch';
 import { useSearchStore } from '@/store/use-search-store';
+import { TooltipProvider } from '@/components/radix/tooltip';
 
 // Mock the hooks
 vi.mock('@/hooks/use-elasticsearch', () => ({
@@ -65,7 +66,11 @@ describe('SearchPage Integration', () => {
       return { data: null, isLoading: false };
     });
 
-    render(<SearchPage />);
+    render(
+      <TooltipProvider>
+        <SearchPage />
+      </TooltipProvider>
+    );
 
     // Initial state: columns are ['@timestamp', 'event_time']
     expect(capturedParams.timestampField).toBe('@timestamp');

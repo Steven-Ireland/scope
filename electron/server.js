@@ -151,6 +151,45 @@ const getClient = async (req) => {
   return await getVersionedClient(req);
 };
 
+const getNiceInterval = (from, to, targetBuckets = 50) => {
+  const start = new Date(from).getTime();
+  const end = new Date(to).getTime();
+  const duration = Math.max(0, end - start);
+  const ideal = duration / targetBuckets;
+
+  const second = 1000;
+  const minute = 60 * second;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  const intervals = [
+    { label: '10ms', value: 10 },
+    { label: '100ms', value: 100 },
+    { label: '1s', value: second },
+    { label: '5s', value: 5 * second },
+    { label: '15s', value: 15 * second },
+    { label: '30s', value: 30 * second },
+    { label: '1m', value: minute },
+    { label: '5m', value: 5 * minute },
+    { label: '15m', value: 15 * minute },
+    { label: '30m', value: 30 * minute },
+    { label: '1h', value: hour },
+    { label: '3h', value: 3 * hour },
+    { label: '6h', value: 6 * hour },
+    { label: '12h', value: 12 * hour },
+    { label: '1d', value: day },
+    { label: '7d', value: 7 * day },
+    { label: '30d', value: 30 * day },
+  ];
+
+  for (const interval of intervals) {
+    if (interval.value >= ideal) {
+      return interval.label;
+    }
+  }
+  return '30d';
+};
+
 // Search endpoint
 app.post('/api/search', async (req, res) => {
   try {
@@ -198,14 +237,31 @@ app.post('/api/search', async (req, res) => {
     };
 
     if (includeHistogram && timestampField) {
-      body.aggs = {
-        histogram: {
-          auto_date_histogram: {
-            field: timestampField,
-            buckets: 60,
+      if (from && to) {
+        const interval = getNiceInterval(from, to, 50);
+        body.aggs = {
+          histogram: {
+            date_histogram: {
+              field: timestampField,
+              fixed_interval: interval,
+              extended_bounds: {
+                min: from,
+                max: to
+              },
+              min_doc_count: 0
+            }
+          }
+        };
+      } else {
+        body.aggs = {
+          histogram: {
+            auto_date_histogram: {
+              field: timestampField,
+              buckets: 60,
+            },
           },
-        },
-      };
+        };
+      }
     }
 
     const response = await esClient.search({

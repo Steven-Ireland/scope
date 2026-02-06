@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { useConfigStore } from '@/store/use-config-store';
 import { DateRange } from 'react-day-picker';
+import { parseRelativeTime } from '@/lib/utils';
+import { RangeMode } from '@/types/search-tab';
 
 export function useIndices() {
-  const getActiveServer = useConfigStore(state => state.getActiveServer);
+  const getActiveServer = useConfigStore((state) => state.getActiveServer);
   const activeServer = getActiveServer();
 
   return useQuery({
@@ -12,29 +14,29 @@ export function useIndices() {
     queryFn: async () => {
       const fetchedIndices = await apiClient.getIndices(activeServer!);
       const patterns = activeServer?.indexPatterns || [];
-      
+
       // Convert wildcard pattern (e.g. logs-*) to Regex (e.g. ^logs-.*$)
-      const patternRegexes = patterns.map(p => new RegExp('^' + p.replace(/\*/g, '.*') + '$'));
+      const patternRegexes = patterns.map((p) => new RegExp('^' + p.replace(/\*/g, '.*') + '$'));
 
       // Filter out indices that match any of the patterns
       const filteredIndices = fetchedIndices.filter((idx: { index: string }) => {
-        return !patternRegexes.some(regex => regex.test(idx.index));
+        return !patternRegexes.some((regex) => regex.test(idx.index));
       });
 
       // Use a Set to ensure unique index names, prioritizing patterns
       const uniqueIndexNames = new Set([
         ...patterns,
-        ...filteredIndices.map((idx: { index: string }) => idx.index)
+        ...filteredIndices.map((idx: { index: string }) => idx.index),
       ]);
 
-      return Array.from(uniqueIndexNames).map(name => ({ index: name }));
+      return Array.from(uniqueIndexNames).map((name) => ({ index: name }));
     },
     enabled: !!activeServer,
   });
 }
 
 export function useFields(index: string) {
-  const getActiveServer = useConfigStore(state => state.getActiveServer);
+  const getActiveServer = useConfigStore((state) => state.getActiveServer);
   const activeServer = getActiveServer();
 
   return useQuery({
@@ -49,28 +51,65 @@ interface SearchParams {
   index: string;
   query: string;
   dateRange: DateRange | undefined;
+  relativeRange?: string;
+  rangeMode: RangeMode;
   sortField: string;
   sortOrder: 'asc' | 'desc';
   timestampField?: string;
 }
 
 export function useSearch(params: SearchParams) {
-  const getActiveServer = useConfigStore(state => state.getActiveServer);
+  const getActiveServer = useConfigStore((state) => state.getActiveServer);
   const activeServer = getActiveServer();
-  const { index, query, dateRange, sortField, sortOrder, timestampField } = params;
+  const {
+    index,
+    query,
+    dateRange,
+    relativeRange,
+    rangeMode,
+    sortField,
+    sortOrder,
+    timestampField,
+  } = params;
 
   return useQuery({
-    queryKey: ['search', activeServer?.id, index, query, dateRange?.from, dateRange?.to, sortField, sortOrder, timestampField],
-    queryFn: () => apiClient.search({
+    queryKey: [
+      'search',
+      activeServer?.id,
       index,
       query,
-      from: dateRange?.from?.toISOString(),
-      to: dateRange?.to?.toISOString(),
+      dateRange?.from,
+      dateRange?.to,
+      relativeRange,
+      rangeMode,
       sortField,
       sortOrder,
       timestampField,
-      includeHistogram: true,
-    }, activeServer!),
+    ],
+    queryFn: async () => {
+      let from = dateRange?.from?.toISOString();
+      let to = dateRange?.to?.toISOString();
+
+      if (rangeMode === 'relative' && relativeRange) {
+        const parsed = parseRelativeTime(relativeRange);
+        from = parsed.from.toISOString();
+        to = parsed.to.toISOString();
+      }
+
+      return apiClient.search(
+        {
+          index,
+          query,
+          from,
+          to,
+          sortField,
+          sortOrder,
+          timestampField,
+          includeHistogram: true,
+        },
+        activeServer!
+      );
+    },
     enabled: !!activeServer && !!index,
     // Keep previous data while fetching new data to prevent flickering
     placeholderData: (previousData) => previousData,

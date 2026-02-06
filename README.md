@@ -18,17 +18,22 @@
 ## Quick Start
 
 ### 1. Prerequisites
+
 - Docker and Docker Compose
 - Node.js (v20+)
 
 ### 2. Start Infrastructure
+
 Spin up the local Elasticsearch instance:
+
 ```bash
 docker-compose up -d
 ```
 
 ### 3. Seed Data
+
 Populate Elasticsearch with sample log and metric data:
+
 ```bash
 npm run seed
 ```
@@ -36,18 +41,22 @@ npm run seed
 ### 4. Run Application
 
 #### Web Interface:
+
 ```bash
 npm install
 npm run dev
 ```
+
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 #### Desktop App (Electron):
+
 ```bash
 npm run electron-dev
 ```
 
 ## Tech Stack
+
 - **Frontend**: React 19, Vite 6, Tailwind CSS v4
 - **Desktop**: Electron
 - **Backend**: Express.js
@@ -56,4 +65,5 @@ npm run electron-dev
 - **Database**: Elasticsearch v8
 
 ## License
+
 MIT

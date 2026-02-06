@@ -36,11 +36,23 @@ describe('SearchPage Integration', () => {
     (useIndices as any).mockReturnValue({ data: mockIndices });
     (useFields as any).mockReturnValue({ data: mockFields, isLoading: false });
     (useSearch as any).mockReturnValue({ data: null, isLoading: false });
-    
+
     // Reset the store
     act(() => {
       useSearchStore.setState({
-        tabs: { default: [{ id: 'tab1', name: 'Search', index: 'logs', query: '', sortField: '@timestamp', sortOrder: 'desc', columns: ['@timestamp', 'event_time'] }] },
+        tabs: {
+          default: [
+            {
+              id: 'tab1',
+              name: 'Search',
+              index: 'logs',
+              query: '',
+              sortField: '@timestamp',
+              sortOrder: 'desc',
+              columns: ['@timestamp', 'event_time'],
+            },
+          ],
+        },
         activeTabIds: { default: 'tab1' },
       });
     });
@@ -60,7 +72,9 @@ describe('SearchPage Integration', () => {
 
     // Swap columns
     act(() => {
-      useSearchStore.getState().updateTab('default', 'tab1', { columns: ['event_time', '@timestamp'] });
+      useSearchStore
+        .getState()
+        .updateTab('default', 'tab1', { columns: ['event_time', '@timestamp'] });
     });
 
     // Should now use event_time

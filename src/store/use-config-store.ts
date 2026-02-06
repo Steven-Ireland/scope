@@ -7,7 +7,7 @@ interface ConfigState {
   servers: ServerConfig[];
   activeServerId: string | null;
   isLoaded: boolean;
-  
+
   // Actions
   setServers: (servers: ServerConfig[]) => void;
   setActiveServerId: (id: string | null) => void;
@@ -15,7 +15,7 @@ interface ConfigState {
   updateServer: (id: string, updates: Partial<ServerConfig>) => void;
   removeServer: (id: string) => void;
   setLoaded: (loaded: boolean) => void;
-  
+
   // Computed (helper)
   getActiveServer: () => ServerConfig | null;
 }
@@ -36,7 +36,7 @@ export const useConfigStore = create<ConfigState>()(
 
       setServers: (servers) => set({ servers }),
       setActiveServerId: (id) => set({ activeServerId: id }),
-      
+
       addServer: (server) => {
         const newServer = { ...server, id: crypto.randomUUID() };
         set((state) => ({

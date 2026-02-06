@@ -14,16 +14,16 @@ export interface SearchParams {
 }
 
 export async function performSearch(params: SearchParams) {
-  const { 
-    index, 
-    query, 
-    from, 
-    to, 
-    offset = 0, 
-    size = 50, 
-    sortField, 
+  const {
+    index,
+    query,
+    from,
+    to,
+    offset = 0,
+    size = 50,
+    sortField,
     sortOrder,
-    timestampField
+    timestampField,
   } = params;
 
   if (!index) {
@@ -76,7 +76,7 @@ export async function performSearch(params: SearchParams) {
 
 export async function getIndices() {
   const indices = await esClient.cat.indices({ format: 'json' });
-  return indices.filter(index => !index.index?.startsWith('.'));
+  return indices.filter((index) => !index.index?.startsWith('.'));
 }
 
 interface MappingProperty {
@@ -86,9 +86,12 @@ interface MappingProperty {
 
 export async function getFields(index: string) {
   const response = await esClient.indices.getMapping({ index });
-  const allFields: { name: string, type: string }[] = [];
-  
-  const getFieldsRecursive = (properties: Record<string, MappingProperty> | undefined, prefix = '') => {
+  const allFields: { name: string; type: string }[] = [];
+
+  const getFieldsRecursive = (
+    properties: Record<string, MappingProperty> | undefined,
+    prefix = ''
+  ) => {
     if (!properties) return;
     for (const key in properties) {
       const fullPath = prefix ? `${prefix}.${key}` : key;
@@ -110,8 +113,22 @@ export async function getFields(index: string) {
   return allFields.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function getValues(index: string, field: string, query: string = '', type: string = '') {
-  const isNumeric = ['integer', 'long', 'float', 'double', 'short', 'byte', 'half_float', 'scaled_float'].includes(type);
+export async function getValues(
+  index: string,
+  field: string,
+  query: string = '',
+  type: string = ''
+) {
+  const isNumeric = [
+    'integer',
+    'long',
+    'float',
+    'double',
+    'short',
+    'byte',
+    'half_float',
+    'scaled_float',
+  ].includes(type);
 
   let include: string | undefined = undefined;
   if (!isNumeric && query) {
@@ -126,24 +143,24 @@ export async function getValues(index: string, field: string, query: string = ''
         terms: {
           field: field,
           size: isNumeric ? 100 : 20,
-          include
-        }
-      }
-    }
+          include,
+        },
+      },
+    },
   };
 
   const response = await esClient.search({
     index,
-    body
+    body,
   });
 
   const topValues = response.aggregations?.top_values as any;
   const buckets = (topValues?.buckets || []) as any[];
-  let values = buckets.map((b) => (b.key_as_string || b.key));
+  let values = buckets.map((b) => b.key_as_string || b.key);
 
   if (isNumeric) {
     if (query) {
-      values = values.filter(v => String(v).startsWith(query));
+      values = values.filter((v) => String(v).startsWith(query));
     }
     values.sort((a, b) => Number(a) - Number(b));
   } else {

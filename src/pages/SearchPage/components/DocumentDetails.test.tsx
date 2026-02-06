@@ -9,8 +9,8 @@ describe('DocumentDetails', () => {
     _index: 'logs',
     _source: {
       message: 'test message',
-      level: 'info'
-    }
+      level: 'info',
+    },
   };
 
   it('should call onClose when Escape key is pressed', () => {

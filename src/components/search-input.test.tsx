@@ -57,7 +57,7 @@ describe('SearchInput Autocomplete', () => {
 
     // Wait for fields to be loaded
     await act(async () => {
-      await Promise.resolve(); 
+      await Promise.resolve();
     });
 
     // Trigger updateSuggestions
@@ -99,7 +99,7 @@ describe('SearchInput Autocomplete', () => {
     });
 
     await act(async () => {
-      await Promise.resolve(); 
+      await Promise.resolve();
     });
 
     await act(async () => {
@@ -139,7 +139,7 @@ describe('SearchInput Autocomplete', () => {
     });
 
     await act(async () => {
-      await Promise.resolve(); 
+      await Promise.resolve();
     });
 
     await act(async () => {
@@ -212,7 +212,7 @@ describe('SearchInput Autocomplete', () => {
     await act(async () => {
       input.focus();
       // Cursor is at the end, after "mess"
-      input.setSelectionRange(16, 16); 
+      input.setSelectionRange(16, 16);
     });
 
     // Wait for fields
@@ -235,10 +235,7 @@ describe('SearchInput Autocomplete', () => {
   });
 
   it('should match fields by segments (e.g., "proces" matches "transaction.processor.name")', async () => {
-    const customFields = [
-      ...fields,
-      { name: 'transaction.processor.name', type: 'keyword' }
-    ];
+    const customFields = [...fields, { name: 'transaction.processor.name', type: 'keyword' }];
     (apiClient.getFields as any).mockResolvedValue(customFields);
 
     await act(async () => {
@@ -318,7 +315,7 @@ describe('SearchInput Autocomplete', () => {
     });
 
     await act(async () => {
-      await Promise.resolve(); 
+      await Promise.resolve();
     });
 
     await act(async () => {
@@ -362,7 +359,7 @@ describe('SearchInput Autocomplete', () => {
     });
 
     await act(async () => {
-      await Promise.resolve(); 
+      await Promise.resolve();
     });
 
     await act(async () => {

@@ -1,0 +1,6 @@
+node_modules
+dist
+dist-electron
+.next
+package-lock.json
+public

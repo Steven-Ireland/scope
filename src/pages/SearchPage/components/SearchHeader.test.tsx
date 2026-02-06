@@ -41,7 +41,7 @@ describe('SearchHeader Column Reordering', () => {
 
   it('should call onMoveColumn when a drag ends', () => {
     render(<SearchHeader {...mockProps} />);
-    
+
     // Open the popover
     const columnsButton = screen.getByRole('button', { name: /Columns/i });
     fireEvent.click(columnsButton);

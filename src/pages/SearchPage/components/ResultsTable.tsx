@@ -34,15 +34,21 @@ export function ResultsTable({
   selectedLogId,
   fields,
 }: ResultsTableProps) {
-  const isDateField = useCallback((field: string) => {
-    const fieldDef = fields.find((f) => f.name === field);
-    return fieldDef?.type === 'date';
-  }, [fields]);
+  const isDateField = useCallback(
+    (field: string) => {
+      const fieldDef = fields.find((f) => f.name === field);
+      return fieldDef?.type === 'date';
+    },
+    [fields]
+  );
 
-  const isSortable = useCallback((field: string) => {
-    const fieldDef = fields.find((f) => f.name === field);
-    return fieldDef ? fieldDef.type !== 'text' : false;
-  }, [fields]);
+  const isSortable = useCallback(
+    (field: string) => {
+      const fieldDef = fields.find((f) => f.name === field);
+      return fieldDef ? fieldDef.type !== 'text' : false;
+    },
+    [fields]
+  );
 
   return (
     <div className="flex-1 overflow-auto min-w-0">
@@ -57,7 +63,9 @@ export function ResultsTable({
                   key={col}
                   className={cn(
                     isDate ? 'w-48' : '',
-                    sortable ? 'cursor-pointer hover:bg-muted/50 transition-colors' : 'cursor-default'
+                    sortable
+                      ? 'cursor-pointer hover:bg-muted/50 transition-colors'
+                      : 'cursor-default'
                   )}
                   onClick={() => sortable && onSort(col)}
                 >
@@ -85,7 +93,10 @@ export function ResultsTable({
         <TableBody>
           {logs.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground italic">
+              <TableCell
+                colSpan={columns.length}
+                className="h-24 text-center text-muted-foreground italic"
+              >
                 {!loading && 'No results found.'}
               </TableCell>
             </TableRow>
@@ -102,7 +113,10 @@ export function ResultsTable({
                 {columns.map((col) => {
                   const val = getValueByPath(log._source, col);
                   return (
-                    <TableCell key={col} className={isDateField(col) ? 'font-mono text-xs' : 'max-w-lg truncate'}>
+                    <TableCell
+                      key={col}
+                      className={isDateField(col) ? 'font-mono text-xs' : 'max-w-lg truncate'}
+                    >
                       {col === 'level' ? (
                         <span
                           className={cn(
@@ -110,8 +124,8 @@ export function ResultsTable({
                             val === 'error'
                               ? 'bg-nord11/10 text-nord11 ring-nord11/20'
                               : val === 'warn'
-                              ? 'bg-nord13/10 text-nord13 ring-nord13/20'
-                              : 'bg-nord3/10 text-nord4 ring-nord3/20'
+                                ? 'bg-nord13/10 text-nord13 ring-nord13/20'
+                                : 'bg-nord3/10 text-nord4 ring-nord3/20'
                           )}
                         >
                           {val || 'info'}

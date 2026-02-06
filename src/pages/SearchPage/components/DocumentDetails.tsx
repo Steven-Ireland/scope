@@ -45,7 +45,9 @@ export function DocumentDetails({ log, onClose }: DocumentDetailsProps) {
               <span className="text-xs font-medium text-muted-foreground uppercase">{key}</span>
               <div className="bg-muted/30 rounded p-2 overflow-auto">
                 <pre className="text-sm font-mono whitespace-pre-wrap break-all">
-                  {typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : String(value)}
+                  {typeof value === 'object' && value !== null
+                    ? JSON.stringify(value, null, 2)
+                    : String(value)}
                 </pre>
               </div>
             </div>

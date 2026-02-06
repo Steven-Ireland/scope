@@ -1,4 +1,12 @@
-import { useState, useEffect, useLayoutEffect, Suspense, useMemo, useCallback, useRef } from 'react';
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  Suspense,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import { useIndices, useFields, useSearch } from '@/hooks/use-elasticsearch';
 import { DateHistogram } from '@/components/date-histogram';
 import { SearchHeader } from './SearchPage/components/SearchHeader';
@@ -14,23 +22,25 @@ import { DateRange } from 'react-day-picker';
 
 const EMPTY_ARRAY: any[] = [];
 
-function SearchContent({ tabId, serverId }: { tabId: string, serverId: string }) {
-  const tabs = useSearchStore(state => state.tabs[serverId] || EMPTY_ARRAY);
-  const activeTabId = useSearchStore(state => state.activeTabIds[serverId]);
-  const activeTab = useMemo(() => tabs.find(t => t.id === tabId) || null, [tabs, tabId]);
-  
-  const updateTab = useSearchStore(state => state.updateTab);
+function SearchContent({ tabId, serverId }: { tabId: string; serverId: string }) {
+  const tabs = useSearchStore((state) => state.tabs[serverId] || EMPTY_ARRAY);
+  const activeTabId = useSearchStore((state) => state.activeTabIds[serverId]);
+  const activeTab = useMemo(() => tabs.find((t) => t.id === tabId) || null, [tabs, tabId]);
 
-  const selectedLog = useSearchStore(state => state.selectedLogs[tabId] || null);
-  const setSelectedLog = useSearchStore(state => state.setSelectedLog);
-  
-  const columnConfigs = useSearchStore(state => state.columnConfigs);
-  const setColumnConfig = useSearchStore(state => state.setColumnConfig);
+  const updateTab = useSearchStore((state) => state.updateTab);
+
+  const selectedLog = useSearchStore((state) => state.selectedLogs[tabId] || null);
+  const setSelectedLog = useSearchStore((state) => state.setSelectedLog);
+
+  const columnConfigs = useSearchStore((state) => state.columnConfigs);
+  const setColumnConfig = useSearchStore((state) => state.setColumnConfig);
 
   // Read search state directly from the store's tab object
   const index = activeTab?.index || '';
   const query = activeTab?.query || '';
   const dateRange = activeTab?.dateRange;
+  const relativeRange = activeTab?.relativeRange;
+  const rangeMode = activeTab?.rangeMode || 'absolute';
 
   // Data fetching with React Query
   const { data: indices = EMPTY_ARRAY } = useIndices();
@@ -49,14 +59,14 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
 
   const getDefaultColumns = useCallback((fieldsList: any[], tsField?: string) => {
     if (fieldsList.length === 0) return tsField ? [tsField] : ['_source'];
-    
+
     // Pick dynamic defaults: primary timestamp + first 4 non-meta fields
-    const defaults = tsField && fieldsList.some(f => f.name === tsField) ? [tsField] : [];
+    const defaults = tsField && fieldsList.some((f) => f.name === tsField) ? [tsField] : [];
     const others = fieldsList
-      .filter(f => f.name !== tsField && !f.name.startsWith('_'))
+      .filter((f) => f.name !== tsField && !f.name.startsWith('_'))
       .slice(0, 4)
-      .map(f => f.name);
-    
+      .map((f) => f.name);
+
     const combined = [...defaults, ...others];
     return combined.length > 0 ? combined : ['_source'];
   }, []);
@@ -78,7 +88,7 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
   const sortField = useMemo(() => {
     if (activeTab?.sortField) return activeTab.sortField;
     if (timestampField) return timestampField;
-    
+
     // Fallback: first sortable field (not 'text' and not meta fields starting with _)
     const firstSortable = fields.find((f: any) => f.type !== 'text' && !f.name.startsWith('_'));
     return firstSortable?.name || '';
@@ -95,30 +105,48 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
   }, [query]);
 
   // Handler functions that update the store directly
-  const handleUpdateSearch = useCallback((updates: Partial<Omit<SearchTab, 'id'>>) => {
-    updateTab(serverId, tabId, updates);
-  }, [serverId, tabId, updateTab]);
+  const handleUpdateSearch = useCallback(
+    (updates: Partial<Omit<SearchTab, 'id'>>) => {
+      updateTab(serverId, tabId, updates);
+    },
+    [serverId, tabId, updateTab]
+  );
 
-  const handleSetDateRange = useCallback((range: DateRange | undefined) => {
-    handleUpdateSearch({ dateRange: range });
-  }, [handleUpdateSearch]);
+  const handleSetDateRange = useCallback(
+    (range: DateRange | undefined) => {
+      handleUpdateSearch({ dateRange: range, rangeMode: 'absolute' });
+    },
+    [handleUpdateSearch]
+  );
 
-  const handleSetSort = useCallback((field: string, order: 'asc' | 'desc') => {
-    handleUpdateSearch({ sortField: field, sortOrder: order });
-  }, [handleUpdateSearch]);
+  const handleSetRelativeRange = useCallback(
+    (relative: string) => {
+      handleUpdateSearch({ relativeRange: relative, rangeMode: 'relative' });
+    },
+    [handleUpdateSearch]
+  );
+
+  const handleSetSort = useCallback(
+    (field: string, order: 'asc' | 'desc') => {
+      handleUpdateSearch({ sortField: field, sortOrder: order });
+    },
+    [handleUpdateSearch]
+  );
 
   // Close sidebar when results change
   useEffect(() => {
     if (selectedLog !== null) {
       setSelectedLog(tabId, null);
     }
-  }, [index, query, dateRange, tabId, setSelectedLog]);
+  }, [index, query, dateRange, relativeRange, rangeMode, tabId, setSelectedLog]);
 
   // Data fetching with React Query
   const { data: searchResults, isLoading: searchLoading } = useSearch({
     index,
     query,
     dateRange,
+    relativeRange,
+    rangeMode,
     sortField,
     sortOrder,
     timestampField,
@@ -126,30 +154,38 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
 
   const logs = searchResults?.hits?.hits || EMPTY_ARRAY;
   const histogramData = useMemo(() => {
-    return searchResults?.aggregations?.histogram?.buckets?.map((b: any) => ({
-      timestamp: b.key,
-      count: b.doc_count,
-    })) || EMPTY_ARRAY;
+    return (
+      searchResults?.aggregations?.histogram?.buckets?.map((b: any) => ({
+        timestamp: b.key,
+        count: b.doc_count,
+      })) || EMPTY_ARRAY
+    );
   }, [searchResults]);
 
-  const handleToggleColumn = useCallback((col: string) => {
-    if (!index) return;
-    const current = visibleColumns;
-    let next;
-    if (current.includes(col)) {
-      next = current.filter((c) => c !== col);
-    } else {
-      next = [...current, col];
-    }
-    handleUpdateSearch({ columns: next });
-  }, [index, visibleColumns, handleUpdateSearch]);
+  const handleToggleColumn = useCallback(
+    (col: string) => {
+      if (!index) return;
+      const current = visibleColumns;
+      let next;
+      if (current.includes(col)) {
+        next = current.filter((c) => c !== col);
+      } else {
+        next = [...current, col];
+      }
+      handleUpdateSearch({ columns: next });
+    },
+    [index, visibleColumns, handleUpdateSearch]
+  );
 
-  const handleMoveColumn = useCallback((fromIndex: number, toIndex: number) => {
-    const next = [...visibleColumns];
-    const [removed] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, removed);
-    handleUpdateSearch({ columns: next });
-  }, [visibleColumns, handleUpdateSearch]);
+  const handleMoveColumn = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      const next = [...visibleColumns];
+      const [removed] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, removed);
+      handleUpdateSearch({ columns: next });
+    },
+    [visibleColumns, handleUpdateSearch]
+  );
 
   const handleSaveDefaultColumns = useCallback(() => {
     if (index) {
@@ -167,26 +203,38 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
     handleUpdateSearch({ query: searchInput });
   }, [handleUpdateSearch, searchInput]);
 
-  const handleSort = useCallback((field: string) => {
-    let newOrder: 'asc' | 'desc' = 'desc';
-    if (sortField === field) {
-      newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
-    }
-    handleSetSort(field, newOrder);
-  }, [sortField, sortOrder, handleSetSort]);
+  const handleSort = useCallback(
+    (field: string) => {
+      let newOrder: 'asc' | 'desc' = 'desc';
+      if (sortField === field) {
+        newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+      }
+      handleSetSort(field, newOrder);
+    },
+    [sortField, sortOrder, handleSetSort]
+  );
 
-  const handleSelectLog = useCallback((log: LogEntry) => {
-    setSelectedLog(tabId, log);
-  }, [tabId, setSelectedLog]);
+  const handleSelectLog = useCallback(
+    (log: LogEntry) => {
+      setSelectedLog(tabId, log);
+    },
+    [tabId, setSelectedLog]
+  );
 
-  const handleIndexChange = useCallback((newIndex: string) => {
-    setSelectedLog(tabId, null);
-    handleUpdateSearch({ index: newIndex, columns: undefined });
-  }, [tabId, handleUpdateSearch, setSelectedLog]);
+  const handleIndexChange = useCallback(
+    (newIndex: string) => {
+      setSelectedLog(tabId, null);
+      handleUpdateSearch({ index: newIndex, columns: undefined });
+    },
+    [tabId, handleUpdateSearch, setSelectedLog]
+  );
 
-  const handleDateRangeChange = useCallback((range: any) => {
-    handleSetDateRange(range);
-  }, [handleSetDateRange]);
+  const handleDateRangeChange = useCallback(
+    (range: any) => {
+      handleSetDateRange(range);
+    },
+    [handleSetDateRange]
+  );
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -198,7 +246,10 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
         onSearchQueryChange={setSearchInput}
         onSearch={handleSearch}
         dateRange={dateRange}
+        relativeRange={relativeRange}
+        rangeMode={rangeMode}
         onDateRangeChange={handleDateRangeChange}
+        onRelativeRangeChange={handleSetRelativeRange}
         fields={fields}
         fieldsLoading={fieldsLoading}
         visibleColumns={visibleColumns}
@@ -214,7 +265,8 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
           <div className="max-w-md space-y-2">
             <h2 className="text-xl font-semibold">Ready to explore?</h2>
             <p className="text-muted-foreground text-sm">
-              Select an index from the dropdown above to start searching through your logs and events.
+              Select an index from the dropdown above to start searching through your logs and
+              events.
             </p>
           </div>
         </main>
@@ -233,7 +285,9 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
                     onRangeSelect={(from, to) => handleSetDateRange({ from, to })}
                   />
                 ) : (
-                  searchLoading && <div className="h-10 w-full bg-muted/20 animate-pulse rounded-sm" />
+                  searchLoading && (
+                    <div className="h-10 w-full bg-muted/20 animate-pulse rounded-sm" />
+                  )
                 )}
               </div>
             </div>
@@ -256,10 +310,10 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
 
             {selectedLog && (
               <div className="absolute inset-y-0 right-0 w-full md:w-1/2 lg:w-1/3 border-l bg-card shadow-2xl z-30 flex flex-col animate-in slide-in-from-right duration-200">
-                <DocumentDetails 
+                <DocumentDetails
                   key={selectedLog._id}
-                  log={selectedLog} 
-                  onClose={() => setSelectedLog(tabId, null)} 
+                  log={selectedLog}
+                  onClose={() => setSelectedLog(tabId, null)}
                 />
               </div>
             )}
@@ -271,42 +325,50 @@ function SearchContent({ tabId, serverId }: { tabId: string, serverId: string })
 }
 
 export default function SearchPage() {
-  const servers = useConfigStore(state => state.servers);
-  const activeServerId = useConfigStore(state => state.activeServerId);
-  const activeServer = useMemo(() => 
-    servers.find((s) => s.id === activeServerId) || servers[0] || null,
+  const servers = useConfigStore((state) => state.servers);
+  const activeServerId = useConfigStore((state) => state.activeServerId);
+  const activeServer = useMemo(
+    () => servers.find((s) => s.id === activeServerId) || servers[0] || null,
     [servers, activeServerId]
   );
-  
-  const serverId = activeServer?.id || 'default';
-  
-  const tabs = useSearchStore(state => state.tabs[serverId] || EMPTY_ARRAY);
-  const activeTabId = useSearchStore(state => state.activeTabIds[serverId] || (tabs[0]?.id) || null);
-  
-  const setActiveTabId = useSearchStore(state => state.setActiveTabId);
-  const removeTab = useSearchStore(state => state.removeTab);
-  const addTab = useSearchStore(state => state.addTab);
 
-  const handleTabSelect = useCallback((id: string) => {
-    setActiveTabId(serverId, id);
-  }, [serverId, setActiveTabId]);
-  
+  const serverId = activeServer?.id || 'default';
+
+  const tabs = useSearchStore((state) => state.tabs[serverId] || EMPTY_ARRAY);
+  const activeTabId = useSearchStore(
+    (state) => state.activeTabIds[serverId] || tabs[0]?.id || null
+  );
+
+  const setActiveTabId = useSearchStore((state) => state.setActiveTabId);
+  const removeTab = useSearchStore((state) => state.removeTab);
+  const addTab = useSearchStore((state) => state.addTab);
+
+  const handleTabSelect = useCallback(
+    (id: string) => {
+      setActiveTabId(serverId, id);
+    },
+    [serverId, setActiveTabId]
+  );
+
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden" key={serverId}>
       <div className="flex-1 relative overflow-hidden">
-        {tabs.map(tab => (
-          <div 
-            key={tab.id} 
+        {tabs.map((tab) => (
+          <div
+            key={tab.id}
             className={cn(
-              "absolute inset-0 flex flex-col",
-              tab.id === activeTabId ? "visible z-10" : "invisible z-0"
+              'absolute inset-0 flex flex-col',
+              tab.id === activeTabId ? 'visible z-10' : 'invisible z-0'
             )}
           >
-            <Suspense fallback={<div className="flex-1 p-8 text-muted-foreground animate-pulse">Loading search...</div>}>
-              <SearchContent 
-                tabId={tab.id} 
-                serverId={serverId} 
-              />
+            <Suspense
+              fallback={
+                <div className="flex-1 p-8 text-muted-foreground animate-pulse">
+                  Loading search...
+                </div>
+              }
+            >
+              <SearchContent tabId={tab.id} serverId={serverId} />
             </Suspense>
           </div>
         ))}

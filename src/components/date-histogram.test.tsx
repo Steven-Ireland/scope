@@ -24,9 +24,7 @@ describe('DateHistogram', () => {
   const mockOnRangeSelect = vi.fn();
 
   it('renders nothing when data is empty', () => {
-    const { container } = render(
-      <DateHistogram data={[]} onRangeSelect={mockOnRangeSelect} />
-    );
+    const { container } = render(<DateHistogram data={[]} onRangeSelect={mockOnRangeSelect} />);
     expect(container.firstChild).toBeNull();
   });
 

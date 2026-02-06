@@ -16,29 +16,37 @@ const clientCache = new Map();
 const normalizeResponse = (response) => {
   // ES7 client returns { body, statusCode, headers, warnings }
   // ES8 client returns the body directly
-  if (response && typeof response === 'object' && response.body !== undefined && (response.statusCode !== undefined || response.headers !== undefined)) {
+  if (
+    response &&
+    typeof response === 'object' &&
+    response.body !== undefined &&
+    (response.statusCode !== undefined || response.headers !== undefined)
+  ) {
     return response.body;
   }
   return response;
 };
 
 const getClientConfig = (req) => {
-  const url = req.headers['x-scope-url'] || process.env.ELASTICSEARCH_URL || 'http://localhost:9200';
+  const url =
+    req.headers['x-scope-url'] || process.env.ELASTICSEARCH_URL || 'http://localhost:9200';
   const username = req.headers['x-scope-username'];
   const password = req.headers['x-scope-password'];
   const certPath = req.headers['x-scope-cert'];
   const keyPath = req.headers['x-scope-key'];
-  const majorVersion = req.headers['x-scope-version'] ? parseInt(req.headers['x-scope-version']) : undefined;
+  const majorVersion = req.headers['x-scope-version']
+    ? parseInt(req.headers['x-scope-version'])
+    : undefined;
 
   const config = {
     node: url,
-    auth: (username && password) ? { username, password } : undefined,
+    auth: username && password ? { username, password } : undefined,
     ssl: {
       rejectUnauthorized: false,
-      cert: certPath && fs.readFileSync(certPath) || undefined,
-      key: keyPath && fs.readFileSync(keyPath) || undefined,
+      cert: (certPath && fs.readFileSync(certPath)) || undefined,
+      key: (keyPath && fs.readFileSync(keyPath)) || undefined,
       checkServerIdentity: () => undefined,
-    }
+    },
   };
 
   return { config, url, majorVersion };
@@ -46,7 +54,7 @@ const getClientConfig = (req) => {
 
 const getVersionedClient = async (req) => {
   const { config, url, majorVersion: hintMajorVersion } = getClientConfig(req);
-  
+
   if (clientCache.has(url)) {
     const cached = clientCache.get(url);
     // If we have a hint and it matches cached major version, use cached client
@@ -79,7 +87,9 @@ const getVersionedClient = async (req) => {
         clientCache.set(url, { client, version: versionNum, majorVersion: hintMajorVersion });
         return client;
       } catch (e) {
-        console.warn(`Hinted client version ${hintMajorVersion} failed: ${e.message}, falling back to detection`);
+        console.warn(
+          `Hinted client version ${hintMajorVersion} failed: ${e.message}, falling back to detection`
+        );
       }
     }
   }
@@ -87,7 +97,7 @@ const getVersionedClient = async (req) => {
   const clientVersions = [
     { Client: Client7, version: 7 },
     { Client: Client8, version: 8 },
-    { Client: Client9, version: 9 }
+    { Client: Client9, version: 9 },
   ];
 
   for (const { Client, version: clientMajor } of clientVersions) {
@@ -96,7 +106,7 @@ const getVersionedClient = async (req) => {
       const info = normalizeResponse(await tempClient.info());
       const versionNum = info.version.number;
       const majorVersion = parseInt(versionNum.split('.')[0]);
-      
+
       let client;
       switch (majorVersion) {
         case 7:
@@ -128,10 +138,10 @@ app.get('/api/verify-server', async (req, res) => {
   try {
     // Clear cache to force re-detection on verify
     clientCache.delete(url);
-    
+
     const client = await getVersionedClient(req);
     const cached = clientCache.get(url);
-    
+
     const result = await client.info();
     const info = normalizeResponse(result);
 
@@ -140,7 +150,7 @@ app.get('/api/verify-server', async (req, res) => {
       version: cached.version,
       majorVersion: cached.majorVersion,
       clusterName: info.cluster_name,
-      name: info.name
+      name: info.name,
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -193,19 +203,19 @@ const getNiceInterval = (from, to, targetBuckets = 50) => {
 // Search endpoint
 app.post('/api/search', async (req, res) => {
   try {
-    const { 
-      index, 
-      query, 
-      from, 
-      to, 
-      offset = 0, 
-      size = 50, 
-      sortField, 
-      sortOrder, 
+    const {
+      index,
+      query,
+      from,
+      to,
+      offset = 0,
+      size = 50,
+      sortField,
+      sortOrder,
       includeHistogram,
-      timestampField
+      timestampField,
     } = req.body;
-    
+
     if (!index) {
       return res.status(400).json({ error: 'Index is required' });
     }
@@ -246,11 +256,11 @@ app.post('/api/search', async (req, res) => {
               fixed_interval: interval,
               extended_bounds: {
                 min: from,
-                max: to
+                max: to,
               },
-              min_doc_count: 0
-            }
-          }
+              min_doc_count: 0,
+            },
+          },
         };
       } else {
         body.aggs = {
@@ -283,13 +293,13 @@ app.get('/api/indices', async (req, res) => {
     const esClient = await getClient(req);
     const result = await esClient.cat.indices({ format: 'json' });
     const indices = normalizeResponse(result);
-    
+
     if (!Array.isArray(indices)) {
       console.error('Expected array of indices, got:', typeof indices, indices);
       return res.json([]);
     }
-    
-    res.json(indices.filter(index => !index.index?.startsWith('.')));
+
+    res.json(indices.filter((index) => !index.index?.startsWith('.')));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -303,19 +313,19 @@ app.get('/api/fields', async (req, res) => {
     const result = await esClient.indices.getMapping({ index });
     const response = normalizeResponse(result);
     const fieldsMap = new Map();
-    
+
     const getFieldsRecursive = (properties, prefix = '') => {
       if (!properties) return;
       for (const key in properties) {
         const fullPath = prefix ? `${prefix}.${key}` : key;
         const property = properties[key];
         const type = property.type || 'object';
-        
+
         // Only add leaf nodes (non-object types)
         if (type !== 'object' && !fieldsMap.has(fullPath)) {
           fieldsMap.set(fullPath, { name: fullPath, type });
         }
-        
+
         if (property.properties) {
           getFieldsRecursive(property.properties, fullPath);
         }
@@ -328,14 +338,14 @@ app.get('/api/fields', async (req, res) => {
       }
     });
 
-    // Final deduplication by name using a Set of strings for safety, 
+    // Final deduplication by name using a Set of strings for safety,
     // although Map should have handled it, this is more explicit.
     const seenNames = new Set();
     const allFields = [];
-    
+
     Array.from(fieldsMap.values())
       .sort((a, b) => a.name.localeCompare(b.name))
-      .forEach(field => {
+      .forEach((field) => {
         if (!seenNames.has(field.name)) {
           seenNames.add(field.name);
           allFields.push(field);
@@ -353,7 +363,16 @@ app.get('/api/values', async (req, res) => {
   try {
     const { index, field, query = '', type = '' } = req.query;
     const esClient = await getClient(req);
-    const isNumeric = ['integer', 'long', 'float', 'double', 'short', 'byte', 'half_float', 'scaled_float'].includes(type);
+    const isNumeric = [
+      'integer',
+      'long',
+      'float',
+      'double',
+      'short',
+      'byte',
+      'half_float',
+      'scaled_float',
+    ].includes(type);
 
     let include = undefined;
     if (!isNumeric && query) {
@@ -368,20 +387,20 @@ app.get('/api/values', async (req, res) => {
           terms: {
             field: field,
             size: isNumeric ? 100 : 20,
-            include
-          }
-        }
-      }
+            include,
+          },
+        },
+      },
     };
 
     const result = await esClient.search({ index, body });
     const response = normalizeResponse(result);
     const topValues = response.aggregations.top_values;
     const buckets = topValues.buckets || [];
-    let values = buckets.map((b) => (b.key_as_string || b.key));
+    let values = buckets.map((b) => b.key_as_string || b.key);
 
     if (isNumeric) {
-      if (query) values = values.filter(v => String(v).startsWith(query));
+      if (query) values = values.filter((v) => String(v).startsWith(query));
       values.sort((a, b) => Number(a) - Number(b));
     } else {
       values.sort((a, b) => String(a).localeCompare(String(b)));

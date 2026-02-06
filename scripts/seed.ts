@@ -2,10 +2,7 @@ import { Client } from '@elastic/elasticsearch-8';
 import { faker } from '@faker-js/faker';
 import { subMinutes, subHours, subDays } from 'date-fns';
 
-const NODES = [
-  'http://localhost:9200',
-  'http://localhost:9201'
-];
+const NODES = ['http://localhost:9200', 'http://localhost:9201'];
 
 const LOGS_INDEX = 'logs-events';
 const METRICS_INDEX = 'metrics-data';
@@ -56,35 +53,39 @@ async function seedLargeEvents(client: Client) {
 
       const stackTrace = `Error: Something went wrong\n    at Object.execute (/app/src/worker.js:42:12)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async Promise.all (index 0)\n    at /app/node_modules/scheduler/index.js:15:3\n    at InternalMethod.invoke (native)\n    at Context.runWith (/app/src/context.js:101:8)\n    at Finalizer.cleanup (/app/src/cleanup.js:12:4)\n    at ${faker.system.filePath()}:${faker.number.int({ min: 1, max: 1000 })}:${faker.number.int({ min: 1, max: 120 })}`;
 
-      const largePayload = JSON.stringify({
-        id: faker.string.uuid(),
-        user: {
+      const largePayload = JSON.stringify(
+        {
           id: faker.string.uuid(),
-          name: faker.person.fullName(),
-          email: faker.internet.email(),
-          address: {
-            street: faker.location.streetAddress(),
-            city: faker.location.city(),
-            country: faker.location.country(),
-            zip: faker.location.zipCode(),
-            geo: {
-              lat: faker.location.latitude(),
-              lng: faker.location.longitude()
-            }
-          }
+          user: {
+            id: faker.string.uuid(),
+            name: faker.person.fullName(),
+            email: faker.internet.email(),
+            address: {
+              street: faker.location.streetAddress(),
+              city: faker.location.city(),
+              country: faker.location.country(),
+              zip: faker.location.zipCode(),
+              geo: {
+                lat: faker.location.latitude(),
+                lng: faker.location.longitude(),
+              },
+            },
+          },
+          items: Array.from({ length: 10 }, () => ({
+            sku: faker.string.alphanumeric(10),
+            quantity: faker.number.int({ min: 1, max: 10 }),
+            price: faker.commerce.price(),
+            description: faker.commerce.productDescription(),
+          })),
+          metadata: {
+            browser: faker.internet.userAgent(),
+            ip: faker.internet.ip(),
+            session_id: faker.string.alphanumeric(32),
+          },
         },
-        items: Array.from({ length: 10 }, () => ({
-          sku: faker.string.alphanumeric(10),
-          quantity: faker.number.int({ min: 1, max: 10 }),
-          price: faker.commerce.price(),
-          description: faker.commerce.productDescription()
-        })),
-        metadata: {
-          browser: faker.internet.userAgent(),
-          ip: faker.internet.ip(),
-          session_id: faker.string.alphanumeric(32)
-        }
-      }, null, 2);
+        null,
+        2
+      );
 
       const extraFields = Object.fromEntries(
         Array.from({ length: 30 }, (_, i) => [`extra_field_${i + 1}`, faker.word.sample()])
@@ -94,7 +95,7 @@ async function seedLargeEvents(client: Client) {
       body.push({
         '@timestamp': timestamp.toISOString(),
         level: faker.helpers.arrayElement(levels),
-        message: faker.hacker.phrase() + " " + faker.lorem.sentences(2),
+        message: faker.hacker.phrase() + ' ' + faker.lorem.sentences(2),
         stack_trace: stackTrace,
         payload: largePayload,
         service: faker.helpers.arrayElement(services),
@@ -131,12 +132,12 @@ async function seedLogs(client: Client) {
             properties: {
               processor: {
                 properties: {
-                  name: { type: 'keyword' }
-                }
+                  name: { type: 'keyword' },
+                },
               },
-              amount: { type: 'float' }
-            }
-          }
+              amount: { type: 'float' },
+            },
+          },
         },
       },
     },
@@ -202,7 +203,7 @@ async function seedMetrics(client: Client) {
           unit: { type: 'keyword' },
           host: { type: 'keyword' },
           region: { type: 'keyword' },
-          tags: { type: 'keyword' }
+          tags: { type: 'keyword' },
         },
       },
     },
@@ -232,7 +233,7 @@ async function seedMetrics(client: Client) {
         unit: 'percent',
         host: faker.helpers.arrayElement(hosts),
         region: faker.helpers.arrayElement(regions),
-        tags: [faker.commerce.department(), faker.company.buzzNoun()]
+        tags: [faker.commerce.department(), faker.company.buzzNoun()],
       });
     }
     await client.bulk({ body });

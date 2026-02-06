@@ -22,7 +22,7 @@ describe('getTimestampField', () => {
   it('should prefer the first date field in visibleColumns regardless of alphabetical order', () => {
     const visibleColumns = ['created_at', 'event_time'];
     expect(getTimestampField(visibleColumns, allDateFields, fallback)).toBe('created_at');
-    
+
     const visibleColumns2 = ['event_time', 'created_at'];
     expect(getTimestampField(visibleColumns2, allDateFields, fallback)).toBe('event_time');
   });
@@ -68,14 +68,14 @@ describe('flattenObject', () => {
       b: {
         c: 2,
         d: {
-          e: 3
-        }
-      }
+          e: 3,
+        },
+      },
     };
     const expected = {
-      'a': 1,
+      a: 1,
       'b.c': 2,
-      'b.d.e': 3
+      'b.d.e': 3,
     };
     expect(flattenObject(obj)).toEqual(expected);
   });
@@ -87,11 +87,11 @@ describe('flattenObject', () => {
   it('should not flatten arrays', () => {
     const obj = {
       a: [1, 2, { b: 3 }],
-      c: 4
+      c: 4,
     };
     const expected = {
-      'a': [1, 2, { b: 3 }],
-      'c': 4
+      a: [1, 2, { b: 3 }],
+      c: 4,
     };
     expect(flattenObject(obj)).toEqual(expected);
   });
@@ -100,12 +100,12 @@ describe('flattenObject', () => {
     const obj = {
       a: null,
       b: {
-        c: null
-      }
+        c: null,
+      },
     };
     const expected = {
-      'a': null,
-      'b.c': null
+      a: null,
+      'b.c': null,
     };
     expect(flattenObject(obj)).toEqual(expected);
   });

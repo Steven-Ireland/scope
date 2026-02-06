@@ -23,23 +23,25 @@
 ## Architecture
 
 ### Frontend
--   **Framework**: React 19 (Vite)
--   **State Management**: Zustand (with persistence)
--   **Routing**: React Router v7
--   **Styling**: Tailwind CSS v4 (Nord theme)
--   **Components**: shadcn/ui (Radix UI primitives)
--   **Visualizations**: Recharts
+
+- **Framework**: React 19 (Vite)
+- **State Management**: Zustand (with persistence)
+- **Routing**: React Router v7
+- **Styling**: Tailwind CSS v4 (Nord theme)
+- **Components**: shadcn/ui (Radix UI primitives)
+- **Visualizations**: Recharts
 
 ### Backend / Desktop
--   **Runtime**: Node.js (Express) & Electron
--   **Database Client**: Dynamic versioning support for `@elastic/elasticsearch` (v7, v8, v9)
--   **Networking**: `undici` for high-performance HTTP requests
--   **Endpoints**:
-    -   `GET /api/indices`: Lists available indices and applies pattern grouping.
-    -   `GET /api/fields`: Fetches flattened mapping fields for an index or pattern.
-    -   `GET /api/values`: Provides autocomplete suggestions for field values.
-    -   `POST /api/search`: Proxies Lucene-style queries and aggregations to Elasticsearch.
-    -   `GET /api/verify-server`: Validates connection and detects ES version.
+
+- **Runtime**: Node.js (Express) & Electron
+- **Database Client**: Dynamic versioning support for `@elastic/elasticsearch` (v7, v8, v9)
+- **Networking**: `undici` for high-performance HTTP requests
+- **Endpoints**:
+  - `GET /api/indices`: Lists available indices and applies pattern grouping.
+  - `GET /api/fields`: Fetches flattened mapping fields for an index or pattern.
+  - `GET /api/values`: Provides autocomplete suggestions for field values.
+  - `POST /api/search`: Proxies Lucene-style queries and aggregations to Elasticsearch.
+  - `GET /api/verify-server`: Validates connection and detects ES version.
 
 ## Quick Start
 
@@ -62,12 +64,12 @@
 
 ## Directory Structure
 
--   `/src`: Frontend React application.
-    -   `/components`: UI components (Tabs, Sidebar, SearchInput, Date Histogram).
-    -   `/pages`: Application pages (Search, App Settings, Server Settings).
-    -   `/store`: Zustand stores for search and configuration.
-    -   `/lib`: Shared utilities and API client.
--   `/electron`: Electron main process, preload scripts, and Express server logic.
--   `/scripts`: Utility scripts (data seeding, release management).
--   `/public`: Static assets.
--   `docker-compose.yml`: Local infrastructure definition.
+- `/src`: Frontend React application.
+  - `/components`: UI components (Tabs, Sidebar, SearchInput, Date Histogram).
+  - `/pages`: Application pages (Search, App Settings, Server Settings).
+  - `/store`: Zustand stores for search and configuration.
+  - `/lib`: Shared utilities and API client.
+- `/electron`: Electron main process, preload scripts, and Express server logic.
+- `/scripts`: Utility scripts (data seeding, release management).
+- `/public`: Static assets.
+- `docker-compose.yml`: Local infrastructure definition.

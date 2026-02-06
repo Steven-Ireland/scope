@@ -29,13 +29,9 @@ export function WindowControls() {
       <button
         onClick={handleMaximize}
         className="inline-flex items-center justify-center w-12 h-full hover:bg-muted transition-colors"
-        title={isMaximized ? "Restore" : "Maximize"}
+        title={isMaximized ? 'Restore' : 'Maximize'}
       >
-        {isMaximized ? (
-          <Copy className="w-3.5 h-3.5" />
-        ) : (
-          <Square className="w-3.5 h-3.5" />
-        )}
+        {isMaximized ? <Copy className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
       </button>
       <button
         onClick={handleClose}

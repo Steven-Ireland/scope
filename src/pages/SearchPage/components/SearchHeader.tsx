@@ -39,7 +39,10 @@ interface SearchHeaderProps {
   onSearchQueryChange: (query: string) => void;
   onSearch: () => void;
   dateRange: DateRange | undefined;
+  relativeRange?: string;
+  rangeMode: 'absolute' | 'relative';
   onDateRangeChange: (range: DateRange | undefined) => void;
+  onRelativeRangeChange: (relative: string) => void;
   fields: { name: string; type: string }[];
   fieldsLoading: boolean;
   visibleColumns: string[];
@@ -50,21 +53,22 @@ interface SearchHeaderProps {
   loading: boolean;
 }
 
-function SortableItem({ id, name, type, selected, onToggle }: { 
-  id: string, 
-  name: string, 
-  type: string, 
-  selected: boolean,
-  onToggle: () => void 
+function SortableItem({
+  id,
+  name,
+  type,
+  selected,
+  onToggle,
+}: {
+  id: string;
+  name: string;
+  type: string;
+  selected: boolean;
+  onToggle: () => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -89,10 +93,7 @@ function SortableItem({ id, name, type, selected, onToggle }: {
       >
         <GripVertical className="h-3 w-3" />
       </button>
-      <button
-        onClick={onToggle}
-        className="flex-1 flex items-center gap-2 min-w-0 text-left"
-      >
+      <button onClick={onToggle} className="flex-1 flex items-center gap-2 min-w-0 text-left">
         <div
           className={cn(
             'h-3.5 w-3.5 border rounded-sm flex items-center justify-center shrink-0',
@@ -118,7 +119,10 @@ export function SearchHeader({
   onSearchQueryChange,
   onSearch,
   dateRange,
+  relativeRange,
+  rangeMode,
   onDateRangeChange,
+  onRelativeRangeChange,
   fields,
   fieldsLoading,
   visibleColumns,
@@ -149,12 +153,12 @@ export function SearchHeader({
     }
   };
 
-  const selectedFields = visibleColumns.map(col => {
-    const field = fields.find(f => f.name === col);
+  const selectedFields = visibleColumns.map((col) => {
+    const field = fields.find((f) => f.name === col);
     return field || { name: col, type: 'unknown' };
   });
 
-  const unselectedFields = fields.filter(f => !visibleColumns.includes(f.name));
+  const unselectedFields = fields.filter((f) => !visibleColumns.includes(f.name));
 
   return (
     <header className="border-b p-4 flex flex-col md:flex-row md:items-center gap-4 bg-background shrink-0">
@@ -183,7 +187,13 @@ export function SearchHeader({
             <div className="p-3 border-b flex flex-col gap-2 shrink-0">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-sm">Configurable Columns</h4>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onResetColumns} title="Reset to default">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={onResetColumns}
+                  title="Reset to default"
+                >
                   <RotateCcw className="h-3 w-3" />
                 </Button>
               </div>
@@ -200,7 +210,9 @@ export function SearchHeader({
 
             <div className="flex-1 overflow-y-auto p-1">
               {fieldsLoading ? (
-                <div className="p-4 text-center text-xs text-muted-foreground animate-pulse">Loading fields...</div>
+                <div className="p-4 text-center text-xs text-muted-foreground animate-pulse">
+                  Loading fields...
+                </div>
               ) : (
                 <div className="space-y-4">
                   {visibleColumns.length > 0 && !columnSearch && (
@@ -237,7 +249,10 @@ export function SearchHeader({
                       {columnSearch ? 'Search Results' : 'Available Fields'}
                     </div>
                     {unselectedFields
-                      .filter((f) => !columnSearch || f.name.toLowerCase().includes(columnSearch.toLowerCase()))
+                      .filter(
+                        (f) =>
+                          !columnSearch || f.name.toLowerCase().includes(columnSearch.toLowerCase())
+                      )
                       .map((f) => (
                         <button
                           key={f.name}
@@ -260,8 +275,13 @@ export function SearchHeader({
                           <span className="text-[10px] opacity-50 px-1">{f.type}</span>
                         </button>
                       ))}
-                    {unselectedFields.filter((f) => !columnSearch || f.name.toLowerCase().includes(columnSearch.toLowerCase())).length === 0 && (
-                      <div className="p-4 text-center text-xs text-muted-foreground">No fields found.</div>
+                    {unselectedFields.filter(
+                      (f) =>
+                        !columnSearch || f.name.toLowerCase().includes(columnSearch.toLowerCase())
+                    ).length === 0 && (
+                      <div className="p-4 text-center text-xs text-muted-foreground">
+                        No fields found.
+                      </div>
                     )}
                   </div>
                 </div>
@@ -288,7 +308,13 @@ export function SearchHeader({
       </div>
 
       <div className="flex items-center gap-2">
-        <DatePickerWithRange date={dateRange} setDate={onDateRangeChange} />
+        <DatePickerWithRange
+          date={dateRange}
+          setDate={onDateRangeChange}
+          relativeRange={relativeRange}
+          onRelativeRangeChange={onRelativeRangeChange}
+          rangeMode={rangeMode}
+        />
         <Button className="w-full md:w-auto shrink-0" onClick={onSearch} disabled={loading}>
           Search
         </Button>

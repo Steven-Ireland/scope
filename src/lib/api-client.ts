@@ -12,7 +12,7 @@ declare global {
       saveConfig: (config: any) => Promise<{ success: boolean; error?: string }>;
       loadConfig: () => Promise<any>;
       selectFile: (title?: string) => Promise<string | null>;
-    }
+    };
   }
 }
 
@@ -47,12 +47,12 @@ export const apiClient = {
       headers: getHeaders(server),
       body: JSON.stringify(params),
     });
-    
+
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`Search failed: ${res.status} ${text.slice(0, 100)}`);
     }
-    
+
     return res.json();
   },
 
@@ -78,7 +78,10 @@ export const apiClient = {
     return res.json();
   },
 
-  async getValues(params: { index: string; field: string; query?: string; type?: string }, server?: ServerConfig) {
+  async getValues(
+    params: { index: string; field: string; query?: string; type?: string },
+    server?: ServerConfig
+  ) {
     const { index, field, query = '', type = '' } = params;
     const queryString = new URLSearchParams({ index, field, query, type }).toString();
     const res = await fetch(`${BASE_URL}/api/values?${queryString}`, {
@@ -101,5 +104,5 @@ export const apiClient = {
       throw new Error(errorData.error || `Verification failed: ${res.status}`);
     }
     return res.json();
-  }
+  },
 };

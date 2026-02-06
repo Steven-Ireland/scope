@@ -9,7 +9,7 @@ interface SearchState {
   activeTabIds: Record<string, string | null>; // serverId -> activeTabId
   columnConfigs: Record<string, string[]>; // indexName -> columns
   selectedLogs: Record<string, LogEntry | null>; // tabId -> selectedLog
-  
+
   // Actions
   addTab: (serverId: string) => void;
   removeTab: (serverId: string, tabId: string) => void;
@@ -17,7 +17,7 @@ interface SearchState {
   setActiveTabId: (serverId: string, tabId: string | null) => void;
   setColumnConfig: (indexName: string, columns: string[]) => void;
   setSelectedLog: (tabId: string, log: LogEntry | null) => void;
-  
+
   // Helpers
   getTabs: (serverId: string) => SearchTab[];
   getActiveTabId: (serverId: string) => string | null;
@@ -33,6 +33,8 @@ const createDefaultTab = (): SearchTab => ({
     from: startOfDay(addDays(new Date(), -1)),
     to: endOfDay(new Date()),
   },
+  relativeRange: 'now-15m',
+  rangeMode: 'relative',
   sortField: '',
   sortOrder: 'desc',
 });
@@ -102,14 +104,18 @@ export const useSearchStore = create<SearchState>()(
           const k = key as keyof Omit<SearchTab, 'id'>;
           if (k === 'dateRange') {
             const newRange = value as any;
-            return tab.dateRange?.from?.getTime() !== newRange?.from?.getTime() ||
-                   tab.dateRange?.to?.getTime() !== newRange?.to?.getTime();
+            return (
+              tab.dateRange?.from?.getTime() !== newRange?.from?.getTime() ||
+              tab.dateRange?.to?.getTime() !== newRange?.to?.getTime()
+            );
           }
+          if (k === 'relativeRange') return tab.relativeRange !== value;
+          if (k === 'rangeMode') return tab.rangeMode !== value;
           if (k === 'columns' && Array.isArray(value) && Array.isArray(tab.columns)) {
             if (value.length !== tab.columns.length) return true;
             return value.some((v, i) => v !== tab.columns?.[i]);
           }
-          if (k === 'columns' && (Array.isArray(value) !== Array.isArray(tab.columns))) {
+          if (k === 'columns' && Array.isArray(value) !== Array.isArray(tab.columns)) {
             return true;
           }
           return (tab as any)[k] !== value;
@@ -159,7 +165,7 @@ export const useSearchStore = create<SearchState>()(
       getActiveTabId: (serverId) => {
         if (!serverId) return null;
         const state = get();
-        return state.activeTabIds[serverId] || (state.tabs[serverId]?.[0]?.id) || null;
+        return state.activeTabIds[serverId] || state.tabs[serverId]?.[0]?.id || null;
       },
 
       getActiveTab: (serverId) => {
@@ -177,13 +183,25 @@ export const useSearchStore = create<SearchState>()(
       // Custom deserialization for Date objects in dateRange
       onRehydrateStorage: () => (state) => {
         if (state && state.tabs) {
-          Object.keys(state.tabs).forEach(serverId => {
-            state.tabs[serverId] = state.tabs[serverId].map(tab => ({
+          Object.keys(state.tabs).forEach((serverId) => {
+            state.tabs[serverId] = state.tabs[serverId].map((tab) => ({
               ...tab,
-              dateRange: tab.dateRange ? {
-                from: tab.dateRange.from ? (typeof tab.dateRange.from === 'string' ? parseISO(tab.dateRange.from) : tab.dateRange.from) : undefined,
-                to: tab.dateRange.to ? (typeof tab.dateRange.to === 'string' ? parseISO(tab.dateRange.to) : tab.dateRange.to) : undefined,
-              } : undefined,
+              rangeMode: tab.rangeMode || 'absolute',
+              relativeRange: tab.relativeRange || 'now-15m',
+              dateRange: tab.dateRange
+                ? {
+                    from: tab.dateRange.from
+                      ? typeof tab.dateRange.from === 'string'
+                        ? parseISO(tab.dateRange.from)
+                        : tab.dateRange.from
+                      : undefined,
+                    to: tab.dateRange.to
+                      ? typeof tab.dateRange.to === 'string'
+                        ? parseISO(tab.dateRange.to)
+                        : tab.dateRange.to
+                      : undefined,
+                  }
+                : undefined,
             }));
           });
         }

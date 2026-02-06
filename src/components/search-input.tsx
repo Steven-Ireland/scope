@@ -29,19 +29,32 @@ interface SearchInputProps {
 
 const getTypeColor = (type?: string) => {
   switch (type) {
-    case 'keyword': return 'bg-nord9/10 text-nord9 border-nord9/20';
+    case 'keyword':
+      return 'bg-nord9/10 text-nord9 border-nord9/20';
     case 'integer':
     case 'long':
     case 'float':
-    case 'double': return 'bg-nord14/10 text-nord14 border-nord14/20';
-    case 'date': return 'bg-nord13/10 text-nord13 border-nord13/20';
-    case 'text': return 'bg-nord12/10 text-nord12 border-nord12/20';
-    case 'boolean': return 'bg-nord15/10 text-nord15 border-nord15/20';
-    default: return 'bg-nord3/10 text-nord4 border-nord3/20';
+    case 'double':
+      return 'bg-nord14/10 text-nord14 border-nord14/20';
+    case 'date':
+      return 'bg-nord13/10 text-nord13 border-nord13/20';
+    case 'text':
+      return 'bg-nord12/10 text-nord12 border-nord12/20';
+    case 'boolean':
+      return 'bg-nord15/10 text-nord15 border-nord15/20';
+    default:
+      return 'bg-nord3/10 text-nord4 border-nord3/20';
   }
 };
 
-export function SearchInput({ value, onChange, onSearch, index, placeholder, disabled }: SearchInputProps) {
+export function SearchInput({
+  value,
+  onChange,
+  onSearch,
+  index,
+  placeholder,
+  disabled,
+}: SearchInputProps) {
   const [fields, setFields] = React.useState<Field[]>([]);
   const [suggestions, setSuggestions] = React.useState<Suggestion[]>([]);
   const [isOpen, setIsOpen] = React.useState(false);
@@ -56,119 +69,130 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
   React.useEffect(() => {
     currentValueRef.current = value;
   }, [value]);
-  
-  const getActiveServer = useConfigStore(state => state.getActiveServer);
+
+  const getActiveServer = useConfigStore((state) => state.getActiveServer);
   const activeServer = React.useMemo(() => getActiveServer(), [getActiveServer]);
 
   React.useEffect(() => {
     if (!index || !activeServer) return;
-    apiClient.getFields(index, activeServer)
-      .then(data => {
+    apiClient
+      .getFields(index, activeServer)
+      .then((data) => {
         if (Array.isArray(data)) {
           setFields(data);
         }
       })
-      .catch(err => console.error('Error fetching fields:', err));
+      .catch((err) => console.error('Error fetching fields:', err));
   }, [index, activeServer]);
 
-  const updateSuggestions = React.useCallback(async (text: string, cursorPosition: number) => {
-    if (!activeServer) return;
-    
-    const requestId = ++lastRequestRef.current;
-    
-    const textBeforeCursor = text.slice(0, cursorPosition);
-    const textAfterCursor = text.slice(cursorPosition);
-    
-    const isAtWordEnd = textAfterCursor.length === 0 || /^\s/.test(textAfterCursor);
-    
-    if (!isAtWordEnd) {
-      setIsOpen(false);
-      return;
-    }
+  const updateSuggestions = React.useCallback(
+    async (text: string, cursorPosition: number) => {
+      if (!activeServer) return;
 
-    const words = textBeforeCursor.split(/(\s+)/);
-    const lastWord = words[words.length - 1];
+      const requestId = ++lastRequestRef.current;
 
-    if (lastWord.includes(':')) {
-      const [fieldName, ...valueParts] = lastWord.split(':');
-      const valuePrefix = valueParts.join(':');
-      const fieldType = fields.find(f => f.name === fieldName)?.type;
-      
-      try {
-        const values = await apiClient.getValues({ 
-          index, 
-          field: fieldName, 
-          query: valuePrefix, 
-          type: fieldType || '' 
-        }, activeServer);
-        
-        if (requestId !== lastRequestRef.current) return;
+      const textBeforeCursor = text.slice(0, cursorPosition);
+      const textAfterCursor = text.slice(cursorPosition);
 
-        if (Array.isArray(values) && values.length > 0) {
-          setSuggestions(values.map(v => ({
-            label: String(v),
-            value: String(v),
-            kind: 'value'
-          })));
+      const isAtWordEnd = textAfterCursor.length === 0 || /^\s/.test(textAfterCursor);
+
+      if (!isAtWordEnd) {
+        setIsOpen(false);
+        return;
+      }
+
+      const words = textBeforeCursor.split(/(\s+)/);
+      const lastWord = words[words.length - 1];
+
+      if (lastWord.includes(':')) {
+        const [fieldName, ...valueParts] = lastWord.split(':');
+        const valuePrefix = valueParts.join(':');
+        const fieldType = fields.find((f) => f.name === fieldName)?.type;
+
+        try {
+          const values = await apiClient.getValues(
+            {
+              index,
+              field: fieldName,
+              query: valuePrefix,
+              type: fieldType || '',
+            },
+            activeServer
+          );
+
+          if (requestId !== lastRequestRef.current) return;
+
+          if (Array.isArray(values) && values.length > 0) {
+            setSuggestions(
+              values.map((v) => ({
+                label: String(v),
+                value: String(v),
+                kind: 'value',
+              }))
+            );
+            setIsOpen(true);
+            setActiveIndex(-1);
+          } else {
+            setIsOpen(false);
+          }
+        } catch (err) {
+          if (requestId === lastRequestRef.current) {
+            console.error('Error fetching values:', err);
+            setIsOpen(false);
+          }
+        }
+      } else {
+        const search = lastWord.toLowerCase();
+        const matches = fields
+          .filter((f) => {
+            const name = f.name.toLowerCase();
+            if (search === '') return true;
+            if (name === search) return false;
+
+            // Smart matching:
+            // 1. Starts with query
+            // 2. Any segment (split by dot) starts with query
+            if (name.startsWith(search)) return true;
+            const segments = name.split('.');
+            return segments.some((segment) => segment.startsWith(search));
+          })
+          .sort((a, b) => {
+            const aName = a.name.toLowerCase();
+            const bName = b.name.toLowerCase();
+
+            // Prioritize exact prefix match
+            const aStarts = aName.startsWith(search);
+            const bStarts = bName.startsWith(search);
+            if (aStarts && !bStarts) return -1;
+            if (!aStarts && bStarts) return 1;
+
+            // Then prioritize segment prefix match
+            const aSegmentStarts = aName.split('.').some((s) => s.startsWith(search));
+            const bSegmentStarts = bName.split('.').some((s) => s.startsWith(search));
+            if (aSegmentStarts && !bSegmentStarts) return -1;
+            if (!aSegmentStarts && bSegmentStarts) return 1;
+
+            return aName.localeCompare(bName);
+          });
+
+        if (matches.length > 0) {
+          setSuggestions(
+            matches.slice(0, 10).map((f) => ({
+              label: f.name,
+              value: f.name,
+              type: f.type,
+              kind: 'field',
+            }))
+          );
           setIsOpen(true);
           setActiveIndex(-1);
         } else {
           setIsOpen(false);
         }
-      } catch (err) {
-        if (requestId === lastRequestRef.current) {
-          console.error('Error fetching values:', err);
-          setIsOpen(false);
-        }
       }
-    } else {
-      const search = lastWord.toLowerCase();
-      const matches = fields
-        .filter(f => {
-          const name = f.name.toLowerCase();
-          if (search === '') return true;
-          if (name === search) return false;
-          
-          // Smart matching: 
-          // 1. Starts with query
-          // 2. Any segment (split by dot) starts with query
-          if (name.startsWith(search)) return true;
-          const segments = name.split('.');
-          return segments.some(segment => segment.startsWith(search));
-        })
-        .sort((a, b) => {
-          const aName = a.name.toLowerCase();
-          const bName = b.name.toLowerCase();
-          
-          // Prioritize exact prefix match
-          const aStarts = aName.startsWith(search);
-          const bStarts = bName.startsWith(search);
-          if (aStarts && !bStarts) return -1;
-          if (!aStarts && bStarts) return 1;
-
-          // Then prioritize segment prefix match
-          const aSegmentStarts = aName.split('.').some(s => s.startsWith(search));
-          const bSegmentStarts = bName.split('.').some(s => s.startsWith(search));
-          if (aSegmentStarts && !bSegmentStarts) return -1;
-          if (!aSegmentStarts && bSegmentStarts) return 1;
-
-          return aName.localeCompare(bName);
-        });
-
-      if (matches.length > 0) {
-        setSuggestions(matches.slice(0, 10).map(f => ({
-          label: f.name,
-          value: f.name,
-          type: f.type,
-          kind: 'field'
-        })));
-        setIsOpen(true);
-        setActiveIndex(-1);
-      } else {
-        setIsOpen(false);
-      }
-    }
-  }, [index, fields, activeServer]);
+    },
+    [index, fields, activeServer]
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -183,8 +207,8 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
     const textBeforeCursor = currentValueRef.current.slice(0, cursorPosition);
     const textAfterCursor = currentValueRef.current.slice(cursorPosition);
 
-    // Split by whitespace to find the last word. 
-    // We use a regex that matches whitespace but keeps it in the result if we wanted, 
+    // Split by whitespace to find the last word.
+    // We use a regex that matches whitespace but keeps it in the result if we wanted,
     // but here we just want to know where the last word starts.
     const lastWhitespaceIndex = textBeforeCursor.search(/\s\S*$/);
     const lastWordStart = lastWhitespaceIndex === -1 ? 0 : lastWhitespaceIndex + 1;
@@ -204,13 +228,13 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
 
     const newValue = newTextBefore + textAfterCursor;
     onChange(newValue);
-    
+
     const newPos = newTextBefore.length;
 
     if (suggestion.kind === 'field') {
-        updateSuggestions(newValue, newPos);
+      updateSuggestions(newValue, newPos);
     } else {
-        setIsOpen(false);
+      setIsOpen(false);
     }
 
     // Use requestAnimationFrame to ensure the DOM has updated and the cursor can be set correctly
@@ -226,11 +250,11 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
     if (isOpen) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActiveIndex(i => (i + 1) % suggestions.length);
+        setActiveIndex((i) => (i + 1) % suggestions.length);
         return;
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setActiveIndex(i => (i - 1 + suggestions.length) % suggestions.length);
+        setActiveIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
         return;
       } else if (e.key === 'Escape') {
         e.preventDefault();
@@ -264,23 +288,25 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
         setIsOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleCursorMove = (e: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>) => {
+  const handleCursorMove = (
+    e: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>
+  ) => {
     const target = e.target as HTMLInputElement;
     updateSuggestions(target.value, target.selectionStart || 0);
   };
 
   const ghostText = React.useMemo(() => {
     if (!isOpen || (activeIndex < 0 && suggestions.length === 0)) return '';
-    
+
     const suggestion = activeIndex >= 0 ? suggestions[activeIndex] : suggestions[0];
     if (!suggestion) return '';
-    
+
     const cursorPosition = inputRef.current?.selectionStart || 0;
-    
+
     // Only show ghost text if cursor is at the end of the text
     if (cursorPosition !== value.length) return '';
 
@@ -299,7 +325,7 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
         return suggestion.value.slice(valuePrefix.length) + ' ';
       }
     }
-    
+
     return '';
   }, [isOpen, activeIndex, suggestions, value]);
 
@@ -326,13 +352,13 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
             handleCursorMove(e);
           }
         }}
-        placeholder={isFocused ? "" : placeholder}
+        placeholder={isFocused ? '' : placeholder}
         disabled={disabled}
         autoComplete="off"
         className="font-mono relative z-10 bg-transparent dark:bg-transparent"
       />
       {ghostText && (
-        <div 
+        <div
           className="absolute inset-0 px-3 py-1 text-base md:text-sm font-mono flex items-center pointer-events-none z-0"
           aria-hidden="true"
         >
@@ -347,8 +373,10 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
               <li
                 key={`${suggestion.kind}-${suggestion.value}-${index}`}
                 className={cn(
-                  "px-3 py-2 text-sm cursor-pointer flex items-center justify-between",
-                  index === activeIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                  'px-3 py-2 text-sm cursor-pointer flex items-center justify-between',
+                  index === activeIndex
+                    ? 'bg-accent text-accent-foreground'
+                    : 'hover:bg-accent hover:text-accent-foreground'
                 )}
                 onClick={() => selectSuggestion(suggestion)}
               >
@@ -356,10 +384,12 @@ export function SearchInput({ value, onChange, onSearch, index, placeholder, dis
                   {suggestion.label}
                 </span>
                 {suggestion.kind === 'field' && (
-                  <span className={cn(
-                    "ml-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border",
-                    getTypeColor(suggestion.type)
-                  )}>
+                  <span
+                    className={cn(
+                      'ml-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border',
+                      getTypeColor(suggestion.type)
+                    )}
+                  >
                     {suggestion.type}
                   </span>
                 )}

@@ -23,24 +23,24 @@ export function SearchTabs({
         <div
           key={tab.id}
           className={cn(
-            "group flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-t-md transition-colors cursor-pointer min-w-[140px] max-w-[220px] relative h-9 no-drag",
+            'group flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-t-md transition-colors cursor-pointer min-w-[140px] max-w-[220px] relative h-9 no-drag',
             activeTabId === tab.id
-              ? "bg-nord1 text-foreground z-10 -mb-[1px]"
-              : "text-muted-foreground hover:bg-muted/30"
+              ? 'bg-nord1 text-foreground z-10 -mb-[1px]'
+              : 'text-muted-foreground hover:bg-muted/30'
           )}
           onClick={() => onTabSelect(tab.id)}
         >
           <div className="flex flex-col min-w-0 flex-1 pr-4">
-            <span className={cn(
-              "truncate font-bold text-[10px] leading-tight",
-              !tab.query && !tab.index && "italic opacity-70"
-            )}>
+            <span
+              className={cn(
+                'truncate font-bold text-[10px] leading-tight',
+                !tab.query && !tab.index && 'italic opacity-70'
+              )}
+            >
               {tab.query || (tab.index ? 'All Documents' : tab.name)}
             </span>
             {tab.index && (
-              <span className="truncate text-[8px] opacity-50 leading-tight">
-                {tab.index}
-              </span>
+              <span className="truncate text-[8px] opacity-50 leading-tight">{tab.index}</span>
             )}
           </div>
           <button
@@ -49,8 +49,8 @@ export function SearchTabs({
               onTabClose(tab.id);
             }}
             className={cn(
-                "absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded-sm hover:bg-muted-foreground/20 transition-opacity no-drag",
-                activeTabId === tab.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              'absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded-sm hover:bg-muted-foreground/20 transition-opacity no-drag',
+              activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
             )}
           >
             <X className="h-3 w-3" />

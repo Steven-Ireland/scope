@@ -26,24 +26,29 @@ function TitleBar() {
   const platform = window.electron?.platform;
   const location = useLocation();
 
-  const servers = useConfigStore(state => state.servers);
-  const activeServerId = useConfigStore(state => state.activeServerId);
-  const activeServer = useMemo(() => 
-    servers.find((s) => s.id === activeServerId) || servers[0] || null,
+  const servers = useConfigStore((state) => state.servers);
+  const activeServerId = useConfigStore((state) => state.activeServerId);
+  const activeServer = useMemo(
+    () => servers.find((s) => s.id === activeServerId) || servers[0] || null,
     [servers, activeServerId]
   );
-  
-  const serverId = activeServer?.id || 'default';
-  const tabs = useSearchStore(state => state.tabs[serverId] || EMPTY_ARRAY);
-  const activeTabId = useSearchStore(state => state.activeTabIds[serverId] || (tabs[0]?.id) || null);
-  
-  const setActiveTabId = useSearchStore(state => state.setActiveTabId);
-  const removeTab = useSearchStore(state => state.removeTab);
-  const addTab = useSearchStore(state => state.addTab);
 
-  const handleTabSelect = useCallback((id: string) => {
-    setActiveTabId(serverId, id);
-  }, [serverId, setActiveTabId]);
+  const serverId = activeServer?.id || 'default';
+  const tabs = useSearchStore((state) => state.tabs[serverId] || EMPTY_ARRAY);
+  const activeTabId = useSearchStore(
+    (state) => state.activeTabIds[serverId] || tabs[0]?.id || null
+  );
+
+  const setActiveTabId = useSearchStore((state) => state.setActiveTabId);
+  const removeTab = useSearchStore((state) => state.removeTab);
+  const addTab = useSearchStore((state) => state.addTab);
+
+  const handleTabSelect = useCallback(
+    (id: string) => {
+      setActiveTabId(serverId, id);
+    },
+    [serverId, setActiveTabId]
+  );
 
   if (!isElectron) return null;
 
@@ -52,7 +57,11 @@ function TitleBar() {
   return (
     <div className="flex items-end justify-between h-12 bg-background border-b drag select-none w-full">
       <div className="flex items-end flex-1 h-full min-w-0 drag">
-        {platform === 'darwin' && <div className="w-20 shrink-0 no-drag h-full" /> /* Traffic lights area is no-drag to allow interaction */}
+        {
+          platform === 'darwin' && (
+            <div className="w-20 shrink-0 no-drag h-full" />
+          ) /* Traffic lights area is no-drag to allow interaction */
+        }
         {isSearchPage && (
           <div className="flex-1 h-full min-w-0">
             <SearchTabs
